@@ -13,48 +13,75 @@
             background-color: #f0f4f8; /* Light blue-gray background */
             display: flex;
             flex-direction: column; /* Allow vertical stacking of content */
-            justify-content: center;
+            justify-content: flex-start; /* Align content to the top */
             align-items: center;
             min-height: 100vh; /* Full viewport height */
             margin: 0;
             padding: 1rem; /* Add some padding for smaller screens */
             box-sizing: border-box;
         }
-        .main-content-container {
-            background-color: #ffffff; /* White background for the main card */
+
+        /* Styling for the top salutation */
+        .salutation-display {
+            font-size: 2.5rem; /* Larger text for salutation */
+            font-weight: 800; /* Extra bold */
+            color: #3498db; /* Bright blue */
+            margin-bottom: 2rem; /* Space below salutation */
+            text-align: center;
+            padding: 1rem 0;
+            width: 100%; /* Full width */
+        }
+        @media (max-width: 640px) {
+            .salutation-display {
+                font-size: 2rem;
+            }
+        }
+
+        /* Container for side-by-side date and weather cards */
+        .date-weather-container {
+            display: flex;
+            flex-wrap: wrap; /* Allow wrapping on smaller screens */
+            justify-content: center;
+            gap: 1.5rem; /* Space between cards */
+            margin-bottom: 2rem; /* Space below this container */
+            width: 100%; /* Full width for the container */
+            max-width: 800px; /* Max width for larger screens */
+        }
+
+        /* Common card styling for date and weather */
+        .info-card {
+            background-color: #ffffff; /* White background for the card */
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); /* Soft shadow */
             border-radius: 1.5rem; /* More rounded corners */
             padding: 2.5rem; /* Generous padding */
             text-align: center;
-            max-width: 90%; /* Max width for responsiveness */
-            width: 500px; /* Fixed width for larger screens */
+            flex: 1; /* Allow cards to grow and shrink */
+            min-width: 280px; /* Minimum width before wrapping */
+            max-width: 48%; /* Max width to allow side-by-side on larger screens */
             display: flex;
             flex-direction: column;
-            gap: 1.5rem; /* Space between elements */
-            margin-bottom: 2rem; /* Space below the main card */
+            justify-content: center;
+            align-items: center;
+            gap: 0.75rem; /* Space between elements inside cards */
         }
-        .date-display {
+        @media (max-width: 768px) {
+            .info-card {
+                max-width: 90%; /* Stack on smaller screens */
+                width: 100%;
+            }
+        }
+
+        .date-display-text {
             font-size: 1.875rem; /* text-3xl */
             font-weight: 700; /* font-bold */
             color: #2c3e50; /* Dark blue-gray for date */
         }
-        .message-display {
-            font-size: 2.25rem; /* text-4xl */
-            font-weight: 800; /* font-extrabold */
-            color: #3498db; /* Bright blue for message */
-            line-height: 1.2;
-        }
-        .weather-display {
+        .weather-display-text {
             font-size: 1.5rem; /* text-2xl */
             font-weight: 600;
             color: #28a745; /* Green for weather */
-            margin-top: 1rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0.5rem;
         }
-        .weather-display img {
+        .weather-display-text img {
             width: 50px; /* Size for weather icon */
             height: 50px;
         }
@@ -121,18 +148,8 @@
             color: #e74c3c; /* Red color for errors */
         }
 
-        /* Responsive adjustments */
+        /* Responsive adjustments for smaller text */
         @media (max-width: 768px) {
-            .main-content-container, .news-section {
-                padding: 1.5rem;
-                width: 100%; /* Full width on smaller screens */
-            }
-            .date-display {
-                font-size: 1.5rem;
-            }
-            .message-display {
-                font-size: 1.875rem;
-            }
             .news-section h2 {
                 font-size: 1.75rem;
             }
@@ -146,18 +163,25 @@
     </style>
 </head>
 <body>
-    <div class="main-content-container">
-        <!-- Display area for the Japanese date -->
-        <div id="dateDisplay" class="date-display">
-            <!-- Japanese date will be inserted here by JavaScript -->
+    <!-- Salutation Display -->
+    <div id="salutationDisplay" class="salutation-display">
+        <!-- Salutation will be inserted here by JavaScript -->
+    </div>
+
+    <!-- Container for Date and Weather Cards (side-by-side) -->
+    <div class="date-weather-container">
+        <!-- Date Card -->
+        <div id="dateCard" class="info-card">
+            <div id="dateDisplay" class="date-display-text">
+                <!-- Japanese date will be inserted here by JavaScript -->
+            </div>
         </div>
-        <!-- Display area for the Japanese message -->
-        <div id="messageDisplay" class="message-display">
-            <!-- Japanese message will be inserted here by JavaScript -->
-        </div>
-        <!-- Display area for the daily weather -->
-        <div id="weatherDisplay" class="weather-display">
-            <div class="loading-indicator">天気情報を読み込み中... (Loading weather info...)</div>
+
+        <!-- Weather Card -->
+        <div id="weatherCard" class="info-card">
+            <div id="weatherDisplay" class="weather-display-text">
+                <div class="loading-indicator">天気情報を読み込み中... (Loading weather info...)</div>
+            </div>
         </div>
     </div>
 
@@ -181,14 +205,17 @@
             return date.toLocaleDateString('ja-JP', japaneseDateOptions);
         }
 
-        // Function to update the content on the page (date and greeting)
-        function updateDateAndGreeting() {
+        // Function to update the date display
+        function updateDateDisplay() {
             const japaneseDate = getCurrentFormattedJapaneseDate();
             const dateElement = document.getElementById('dateDisplay');
-            const messageElement = document.getElementById('messageDisplay');
+            // Format: "今は [日付] です。"
+            dateElement.textContent = `今は${japaneseDate}です。`;
+        }
 
-            dateElement.textContent = japaneseDate;
-
+        // Function to update the salutation display
+        function updateSalutationDisplay() {
+            const salutationElement = document.getElementById('salutationDisplay');
             const hour = new Date().getHours();
             let greeting = "こんにちは！"; // Default to Konnichiwa
 
@@ -197,7 +224,7 @@
             } else if (hour >= 18 || hour < 5) {
                 greeting = "こんばんは！"; // Good evening/night
             }
-            messageElement.textContent = greeting;
+            salutationElement.textContent = greeting;
         }
 
         // Function to fetch and display NHK News Web Easy articles
@@ -262,13 +289,18 @@
         // Function to fetch and display weather information
         async function fetchWeather() {
             const weatherDisplayDiv = document.getElementById('weatherDisplay');
-            // OpenWeatherMap API Key.
-            // A 401 error indicates the API key is invalid or not yet active.
-            // Please ensure the key is correct and has been active for a few minutes.
             const apiKey = '50104961ae75c350112b68c14da1741a'; // Your OpenWeatherMap API Key
             const city = 'Tokyo'; // You can change this to any city, e.g., 'Osaka', 'Kyoto'
             const lang = 'ja'; // For Japanese weather description
             const units = 'metric'; // For Celsius temperature
+
+            // Mapping for city names to Japanese with furigana
+            const japaneseCityNames = {
+                'Tokyo': { kanji: '東京', furigana: 'とうきょう' },
+                'Osaka': { kanji: '大阪', furigana: 'おおさか' },
+                'Kyoto': { kanji: '京都', furigana: 'きょうと' },
+                // Add more cities as needed
+            };
 
             if (!apiKey || apiKey === 'YOUR_OPENWEATHERMAP_API_KEY') {
                 weatherDisplayDiv.innerHTML = `<div class="error-message">天気情報を表示するにはOpenWeatherMapのAPIキーが必要です。<br>（APIキーが正しく設定されているか確認してください。）</div>`;
@@ -295,8 +327,11 @@
                 const iconCode = weatherData.weather[0].icon;
                 const iconUrl = `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
 
+                // Get Japanese city name and furigana
+                const displayCity = japaneseCityNames[city] || { kanji: city, furigana: '' }; // Fallback if city not in map
+
                 weatherDisplayDiv.innerHTML = `
-                    <p><ruby>${city}<rt>${city === 'Tokyo' ? 'とうきょう' : ''}</rt></ruby>の天気</p>
+                    <p><ruby>${displayCity.kanji}<rt>${displayCity.furigana}</rt></ruby>の天気</p>
                     <img src="${iconUrl}" alt="${description}" onerror="this.onerror=null;this.src='https://placehold.co/50x50/cccccc/ffffff?text=天気';">
                     <p>${temperature}°C</p>
                     <p>${description}</p>
@@ -309,9 +344,10 @@
 
         // Call all functions when the page loads
         window.onload = () => {
-            updateDateAndGreeting();
+            updateSalutationDisplay(); // New: Call salutation function first
+            updateDateDisplay(); // Updated: Call date function
             fetchNHKNews();
-            fetchWeather(); // Call the new weather function
+            fetchWeather();
         };
     </script>
 </body>
