@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>日本語の日付と挨拶</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      margin-top: 50px;
+      font-size: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <div id="date"></div>
+  <div id="greeting"></div>
+
+  <script>
+    function getJapaneseDate() {
+      const now = new Date();
+      const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
+      return now.toLocaleDateString('ja-JP', options);
+    }
+
+    function getGreeting() {
+      const hour = new Date().getHours();
+      if (hour < 12) return "おはようございます"; // Good morning
+      if (hour < 18) return "こんにちは"; // Good afternoon
+      return "こんばんは"; // Good evening
+    }
+
+    document.getElementById('date').textContent = getJapaneseDate();
+    document.getElementById('greeting').textContent = getGreeting();
+  </script>
+</body>
+</html>
