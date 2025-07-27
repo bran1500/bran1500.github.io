@@ -2,8 +2,11 @@ name: Update NHK Easy News
 
 on:
   schedule:
-    - cron: '0 */6 * * *' # Runs every 6 hours
-  workflow_dispatch: # Allows manual trigger
+    - cron: '0 */6 * * *' # Every 6 hours
+  workflow_dispatch:
+
+permissions:
+  contents: write  # ✅ Give the workflow permission to push changes
 
 jobs:
   fetch-news:
@@ -12,6 +15,9 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
+        with:
+          persist-credentials: false  # We'll use token for push
+          fetch-depth: 0             # Ensure full history for commit
 
       - name: Install XML tools
         run: sudo apt-get install -y libxml2-utils jq
@@ -23,8 +29,7 @@ jobs:
           # Download RSS feed
           curl -s "https://www3.nhk.or.jp/news/easy/rss/easy-news.xml" -o rss.xml
 
-          # Parse XML for <item> elements and extract titles & links
-          # Limit to first 5 items
+          # Extract titles and links (first 5)
           titles=($(xmllint --xpath "//item/title/text()" rss.xml | head -n 5))
           links=($(xmllint --xpath "//item/link/text()" rss.xml | head -n 5))
 
@@ -33,19 +38,22 @@ jobs:
           for i in "${!titles[@]}"; do
             title="${titles[$i]}"
             link="${links[$i]}"
-            # Escape quotes in title
             title=$(echo "$title" | sed 's/"/\\"/g')
             echo "{\"title\": \"$title\", \"link\": \"$link\"}," >> data/news.json
           done
-
-          # Remove last comma and close JSON
           sed -i '$ s/,$//' data/news.json
           echo ']}' >> data/news.json
 
-      - name: Commit changes
+          echo "Updated news.json with ${#titles[@]} items"
+
+      - name: Commit and Push changes
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "actions@github.com"
           git add data/news.json
-          git commit -m "Update NHK news" || echo "No changes to commit"
-          git push
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update NHK news"
+            git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
+          fi
