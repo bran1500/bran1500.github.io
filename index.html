@@ -44,6 +44,20 @@
             color: #3498db; /* Bright blue for message */
             line-height: 1.2;
         }
+        .weather-display {
+            font-size: 1.5rem; /* text-2xl */
+            font-weight: 600;
+            color: #28a745; /* Green for weather */
+            margin-top: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .weather-display img {
+            width: 50px; /* Size for weather icon */
+            height: 50px;
+        }
 
         .news-section {
             background-color: #ffffff;
@@ -141,6 +155,10 @@
         <div id="messageDisplay" class="message-display">
             <!-- Japanese message will be inserted here by JavaScript -->
         </div>
+        <!-- Display area for the daily weather -->
+        <div id="weatherDisplay" class="weather-display">
+            <div class="loading-indicator">天気情報を読み込み中... (Loading weather info...)</div>
+        </div>
     </div>
 
     <div class="news-section">
@@ -188,18 +206,19 @@
             newsContentDiv.innerHTML = '<div class="loading-indicator">ニュースを読み込み中... (Loading news...)</div>'; // Show loading
 
             const nhkNewsUrl = 'https://www3.nhk.or.jp/news/easy/news-list.json';
-            // Use a CORS proxy to fetch the data
-            // corsproxy.io is used here to bypass CORS restrictions.
-            const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(nhkNewsUrl)}`;
-            // console.log('Fetching news from proxy:', proxyUrl); // Uncomment for debugging
+            // Using a CORS proxy. Public proxies can be unreliable.
+            const proxyUrl = `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(nhkNewsUrl)}`;
+            console.log('Fetching news from proxy:', proxyUrl); // Log the proxy URL
 
             try {
                 const response = await fetch(proxyUrl);
-                // console.log('Proxy response status:', response.status); // Uncomment for debugging
+                console.log('Proxy response status:', response.status); // Log the response status
+
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 const newsData = await response.json();
+                console.log('Received news data:', newsData); // Log the full news data to inspect its structure
 
                 // Clear loading indicator
                 newsContentDiv.innerHTML = '';
@@ -216,37 +235,83 @@
                     const articleDiv = document.createElement('div');
                     articleDiv.className = 'news-article';
 
-                    // NHK's JSON provides 'title_with_ruby' which already includes <ruby> tags.
+                    // Check if title_with_ruby exists, otherwise use plain title or a fallback
+                    const articleTitle = article.title_with_ruby || article.title || 'タイトルなし (No Title)';
+
                     const titleElement = document.createElement('h3');
-                    titleElement.innerHTML = article.title_with_ruby; // Use innerHTML to render ruby tags
+                    titleElement.innerHTML = articleTitle; // Use innerHTML to render ruby tags
 
                     const linkElement = document.createElement('a');
-                    // Construct the full URL for the NHK News Web Easy article.
                     linkElement.href = `https://www3.nhk.or.jp/news/easy/${article.news_id}/${article.news_id}.html`;
-                    linkElement.target = '_blank'; // Open in new tab
+                    linkElement.target = '_blank';
                     linkElement.className = 'text-blue-500 hover:underline text-sm block mt-2';
-                    linkElement.innerHTML = '<ruby>元<rt>もと</rt></ruby>の<ruby>記事<rt>きじ</rt></ruby>を<ruby>読<rt>よ</rt></ruby>む'; // Read original article
+                    linkElement.innerHTML = '<ruby>元<rt>もと</rt></ruby>の<ruby>記事<rt>きじ</rt></ruby>を<ruby>読<rt>よ</rt></ruby>む';
 
                     articleDiv.appendChild(titleElement);
-                    // Note: This MVP only displays the title and a link.
-                    // Fetching and parsing the full article summary with furigana dynamically
-                    // would require more advanced techniques (e.g., server-side scraping or a more
-                    // sophisticated client-side parsing that might still be subject to CORS on content).
                     articleDiv.appendChild(linkElement);
 
                     newsContentDiv.appendChild(articleDiv);
                 });
 
             } catch (error) {
-                console.error('ニュースの取得に失敗しました:', error); // Log the error to console
-                newsContentDiv.innerHTML = `<div class="error-message">ニュースの読み込み中にエラーが発生しました。<br>(${error.message})</div>`; // Display user-friendly error
+                console.error('ニュースの取得に失敗しました:', error);
+                newsContentDiv.innerHTML = `<div class="error-message">ニュースの読み込み中にエラーが発生しました。<br>(${error.message})<br>公共のプロキシは信頼性が低い場合があります。より安定した解決策にはバックエンドサーバーが必要です。(Error loading news. Public proxies can be unreliable. A more stable solution requires a backend server.)<br>ブラウザのコンソールを確認してください。(Check browser console.)</div>`;
             }
         }
 
-        // Call functions when the page loads
+        // Function to fetch and display weather information
+        async function fetchWeather() {
+            const weatherDisplayDiv = document.getElementById('weatherDisplay');
+            // OpenWeatherMap API Key.
+            // A 401 error indicates the API key is invalid or not yet active.
+            // Please ensure the key is correct and has been active for a few minutes.
+            const apiKey = '50104961ae75c350112b68c14da1741a'; // Your OpenWeatherMap API Key
+            const city = 'Tokyo'; // You can change this to any city, e.g., 'Osaka', 'Kyoto'
+            const lang = 'ja'; // For Japanese weather description
+            const units = 'metric'; // For Celsius temperature
+
+            if (!apiKey || apiKey === 'YOUR_OPENWEATHERMAP_API_KEY') {
+                weatherDisplayDiv.innerHTML = `<div class="error-message">天気情報を表示するにはOpenWeatherMapのAPIキーが必要です。<br>（APIキーが正しく設定されているか確認してください。）</div>`;
+                console.error('OpenWeatherMap API Key is missing or invalid. Please ensure it is correctly entered and active.');
+                return;
+            }
+
+            const weatherApiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&lang=${lang}&units=${units}`;
+            
+            try {
+                const response = await fetch(weatherApiUrl);
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    if (response.status === 401) {
+                        throw new Error(`APIキーが無効か、まだ有効になっていません。OpenWeatherMapのウェブサイトでキーを確認してください。(${errorData.message})`);
+                    }
+                    throw new Error(`HTTP error! status: ${response.status} - ${errorData.message}`);
+                }
+                const weatherData = await response.json();
+                console.log('Received weather data:', weatherData);
+
+                const temperature = weatherData.main.temp;
+                const description = weatherData.weather[0].description;
+                const iconCode = weatherData.weather[0].icon;
+                const iconUrl = `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
+
+                weatherDisplayDiv.innerHTML = `
+                    <p><ruby>${city}<rt>${city === 'Tokyo' ? 'とうきょう' : ''}</rt></ruby>の天気</p>
+                    <img src="${iconUrl}" alt="${description}" onerror="this.onerror=null;this.src='https://placehold.co/50x50/cccccc/ffffff?text=天気';">
+                    <p>${temperature}°C</p>
+                    <p>${description}</p>
+                `;
+            } catch (error) {
+                console.error('天気情報の取得に失敗しました:', error);
+                weatherDisplayDiv.innerHTML = `<div class="error-message">天気情報の読み込み中にエラーが発生しました。<br>(${error.message})</div>`;
+            }
+        }
+
+        // Call all functions when the page loads
         window.onload = () => {
             updateDateAndGreeting();
             fetchNHKNews();
+            fetchWeather(); // Call the new weather function
         };
     </script>
 </body>
