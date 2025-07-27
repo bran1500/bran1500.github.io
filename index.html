@@ -1,73 +1,117 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>日本語学習ミニサイト</title>
-  <style>
-    body {
-      font-family: 'Arial', sans-serif;
-      text-align: center;
-      margin: 40px;
-    }
-    h1 { font-size: 2rem; margin-bottom: 10px; }
-    h2 { margin-top: 40px; }
-    ul { list-style: none; padding: 0; }
-    li { margin: 10px 0; font-size: 1.2rem; }
-    a { color: #0070f3; text-decoration: none; }
-    a:hover { text-decoration: underline; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日本語学習アプリ</title> <!-- Japanese title: Japanese Learning App -->
+    <!-- Tailwind CSS CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for the Inter font and overall aesthetics */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Light blue-gray background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh; /* Full viewport height */
+            margin: 0;
+            padding: 1rem; /* Add some padding for smaller screens */
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: #ffffff; /* White background for the card */
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); /* Soft shadow */
+            border-radius: 1.5rem; /* More rounded corners */
+            padding: 2.5rem; /* Generous padding */
+            text-align: center;
+            max-width: 90%; /* Max width for responsiveness */
+            width: 500px; /* Fixed width for larger screens */
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem; /* Space between elements */
+        }
+        .date-display {
+            font-size: 1.875rem; /* text-3xl */
+            font-weight: 700; /* font-bold */
+            color: #2c3e50; /* Dark blue-gray for date */
+        }
+        .message-display {
+            font-size: 2.25rem; /* text-4xl */
+            font-weight: 800; /* font-extrabold */
+            color: #3498db; /* Bright blue for message */
+            line-height: 1.2;
+        }
+        /* Responsive adjustments */
+        @media (max-width: 640px) {
+            .date-display {
+                font-size: 1.5rem; /* text-2xl on small screens */
+            }
+            .message-display {
+                font-size: 1.875rem; /* text-3xl on small screens */
+            }
+            .container {
+                padding: 1.5rem;
+            }
+        }
+    </style>
 </head>
 <body>
-  <h1 id="greeting"></h1>
-  <p id="date" style="font-size:1.5rem;"></p>
+    <div class="container">
+        <!-- Display area for the Japanese date -->
+        <div id="dateDisplay" class="date-display">
+            <!-- Japanese date will be inserted here by JavaScript -->
+        </div>
+        <!-- Display area for the Japanese message -->
+        <div id="messageDisplay" class="message-display">
+            <!-- Japanese message will be inserted here by JavaScript -->
+        </div>
+    </div>
 
-  <div id="news">
-    <h2>今日のニュース</h2>
-    <ul id="news-list"></ul>
-  </div>
-
-  <script>
-    // Date in Japanese
-    function getJapaneseDate() {
-      const now = new Date();
-      const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
-      return now.toLocaleDateString('ja-JP', options);
-    }
-
-    // Greeting based on time
-    function getGreeting() {
-      const hour = new Date().getHours();
-      if (hour < 12) return "おはようございます"; // Morning
-      if (hour < 18) return "こんにちは";       // Afternoon
-      return "こんばんは";                     // Evening
-    }
-
-    document.getElementById('date').textContent = getJapaneseDate();
-    document.getElementById('greeting').textContent = getGreeting();
-
-    // Load NHK news from local JSON
-    async function loadNHKNews() {
-      try {
-        const response = await fetch('./data/news.json');
-        const data = await response.json();
-        const list = document.getElementById('news-list');
-
-        if (data.items.length === 0) {
-          list.innerHTML = "<li>ニュースがありません</li>";
-          return;
+    <script>
+        // Function to get the current date and format it in Japanese
+        function getCurrentFormattedJapaneseDate() {
+            const date = new Date();
+            // Options for Japanese date formatting (Kanji for year, month, day, and weekday)
+            // Example: 2023年1月25日水曜日 (Wednesday, January 25, 2023)
+            const japaneseDateOptions = {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                weekday: 'long'
+            };
+            return date.toLocaleDateString('ja-JP', japaneseDateOptions);
         }
 
-        data.items.slice(0, 3).forEach(item => {
-          const li = document.createElement("li");
-          li.innerHTML = `<a href="${item.link}" target="_blank">${item.title}</a>`;
-          list.appendChild(li);
-        });
-      } catch (err) {
-        console.error("Failed to load news:", err);
-      }
-    }
+        // Function to update the content on the page
+        function updateContent() {
+            const japaneseDate = getCurrentFormattedJapaneseDate();
+            const dateElement = document.getElementById('dateDisplay');
+            const messageElement = document.getElementById('messageDisplay');
 
-    loadNHKNews();
-  </script>
+            // Set the date, only in Japanese
+            dateElement.textContent = japaneseDate;
+
+            // Determine the appropriate Japanese greeting based on the time of day
+            // こんにちは (Konnichiwa) - General hello/good afternoon
+            // おはようございます (Ohayō gozaimasu) - Good morning (polite)
+            // こんばんは (Konbanwa) - Good evening
+            const hour = new Date().getHours();
+            let greeting = "こんにちは！"; // Default to Konnichiwa
+
+            if (hour >= 5 && hour < 11) {
+                greeting = "おはようございます！"; // Good morning
+            } else if (hour >= 18 || hour < 5) {
+                greeting = "こんばんは！"; // Good evening/night
+            }
+
+            // Set the greeting. These common greetings are typically written in hiragana
+            // and thus do not have kanji to apply furigana to.
+            messageElement.textContent = greeting;
+        }
+
+        // Call updateContent when the page loads
+        window.onload = updateContent;
+    </script>
 </body>
 </html>
