@@ -2,57 +2,72 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>日本語の日付と挨拶</title>
+  <title>日本語学習ミニサイト</title>
   <style>
     body {
-      font-family: sans-serif;
+      font-family: 'Arial', sans-serif;
       text-align: center;
-      margin-top: 50px;
-      font-size: 2rem;
+      margin: 40px;
     }
+    h1 { font-size: 2rem; margin-bottom: 10px; }
+    h2 { margin-top: 40px; }
+    ul { list-style: none; padding: 0; }
+    li { margin: 10px 0; font-size: 1.2rem; }
+    a { color: #0070f3; text-decoration: none; }
+    a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
-  <div id="date"></div>
-  <div id="greeting"></div>
+  <h1 id="greeting"></h1>
+  <p id="date" style="font-size:1.5rem;"></p>
 
   <div id="news">
-  <h2>今日のニュース</h2>
-  <ul id="news-list"></ul>
-</div>
-
-<script>
-    async function loadNHKNews() {
-      const response = await fetch('./data/news.json');
-      const data = await response.json();
-    
-      const list = document.getElementById("news-list");
-      data.items.slice(0, 3).forEach(item => {
-        const li = document.createElement("li");
-        li.innerHTML = `<a href="${item.link}" target="_blank">${item.title}</a>`;
-        list.appendChild(li);
-      });
-    }
-    
-    loadNHKNews();
-</script>
+    <h2>今日のニュース</h2>
+    <ul id="news-list"></ul>
+  </div>
 
   <script>
+    // Date in Japanese
     function getJapaneseDate() {
       const now = new Date();
       const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
       return now.toLocaleDateString('ja-JP', options);
     }
 
+    // Greeting based on time
     function getGreeting() {
       const hour = new Date().getHours();
-      if (hour < 12) return "おはようございます"; // Good morning
-      if (hour < 18) return "こんにちは"; // Good afternoon
-      return "こんばんは"; // Good evening
+      if (hour < 12) return "おはようございます"; // Morning
+      if (hour < 18) return "こんにちは";       // Afternoon
+      return "こんばんは";                     // Evening
     }
 
     document.getElementById('date').textContent = getJapaneseDate();
     document.getElementById('greeting').textContent = getGreeting();
+
+    // Load NHK news from local JSON
+    async function loadNHKNews() {
+      try {
+        const response = await fetch('./data/news.json');
+        const data = await response.json();
+        const list = document.getElementById('news-list');
+
+        if (data.items.length === 0) {
+          list.innerHTML = "<li>ニュースがありません</li>";
+          return;
+        }
+
+        data.items.slice(0, 3).forEach(item => {
+          const li = document.createElement("li");
+          li.innerHTML = `<a href="${item.link}" target="_blank">${item.title}</a>`;
+          list.appendChild(li);
+        });
+      } catch (err) {
+        console.error("Failed to load news:", err);
+      }
+    }
+
+    loadNHKNews();
   </script>
 </body>
 </html>
