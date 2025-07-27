@@ -12,6 +12,7 @@
             font-family: 'Inter', sans-serif;
             background-color: #f0f4f8; /* Light blue-gray background */
             display: flex;
+            flex-direction: column; /* Allow vertical stacking of content */
             justify-content: center;
             align-items: center;
             min-height: 100vh; /* Full viewport height */
@@ -19,8 +20,8 @@
             padding: 1rem; /* Add some padding for smaller screens */
             box-sizing: border-box;
         }
-        .container {
-            background-color: #ffffff; /* White background for the card */
+        .main-content-container {
+            background-color: #ffffff; /* White background for the main card */
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); /* Soft shadow */
             border-radius: 1.5rem; /* More rounded corners */
             padding: 2.5rem; /* Generous padding */
@@ -30,6 +31,7 @@
             display: flex;
             flex-direction: column;
             gap: 1.5rem; /* Space between elements */
+            margin-bottom: 2rem; /* Space below the main card */
         }
         .date-display {
             font-size: 1.875rem; /* text-3xl */
@@ -42,22 +44,95 @@
             color: #3498db; /* Bright blue for message */
             line-height: 1.2;
         }
+
+        .news-section {
+            background-color: #ffffff;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border-radius: 1.5rem;
+            padding: 2.5rem;
+            max-width: 90%;
+            width: 800px; /* Wider for news content */
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            text-align: left; /* Align news text to the left */
+        }
+        .news-section h2 {
+            font-size: 2rem; /* text-3xl */
+            font-weight: 800;
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        .news-article {
+            border-bottom: 1px solid #e0e7eb; /* Light separator */
+            padding-bottom: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .news-article:last-child {
+            border-bottom: none; /* No border for the last article */
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        .news-article h3 {
+            font-size: 1.5rem; /* text-2xl */
+            font-weight: 700;
+            color: #34495e; /* Slightly darker blue-gray for headlines */
+            margin-bottom: 0.75rem;
+        }
+        .news-article p {
+            font-size: 1.125rem; /* text-lg */
+            color: #555;
+            line-height: 1.6;
+        }
+        /* Furigana styling */
+        ruby {
+            ruby-align: center;
+        }
+        rt {
+            font-size: 0.75em; /* Smaller font for furigana */
+            color: #888; /* Lighter color for furigana */
+            user-select: none; /* Prevent selection of furigana */
+        }
+        .loading-indicator {
+            text-align: center;
+            padding: 2rem;
+            font-size: 1.25rem;
+            color: #666;
+        }
+        .error-message {
+            text-align: center;
+            padding: 2rem;
+            font-size: 1.25rem;
+            color: #e74c3c; /* Red color for errors */
+        }
+
         /* Responsive adjustments */
-        @media (max-width: 640px) {
+        @media (max-width: 768px) {
+            .main-content-container, .news-section {
+                padding: 1.5rem;
+                width: 100%; /* Full width on smaller screens */
+            }
             .date-display {
-                font-size: 1.5rem; /* text-2xl on small screens */
+                font-size: 1.5rem;
             }
             .message-display {
-                font-size: 1.875rem; /* text-3xl on small screens */
+                font-size: 1.875rem;
             }
-            .container {
-                padding: 1.5rem;
+            .news-section h2 {
+                font-size: 1.75rem;
+            }
+            .news-article h3 {
+                font-size: 1.25rem;
+            }
+            .news-article p {
+                font-size: 1rem;
             }
         }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="main-content-container">
         <!-- Display area for the Japanese date -->
         <div id="dateDisplay" class="date-display">
             <!-- Japanese date will be inserted here by JavaScript -->
@@ -68,12 +143,17 @@
         </div>
     </div>
 
+    <div class="news-section">
+        <h2>NHKニュース・ウェブ・イージー (やさしい日本語)</h2> <!-- NHK News Web Easy (Easy Japanese) -->
+        <div id="newsContent">
+            <div class="loading-indicator">ニュースを読み込み中... (Loading news...)</div>
+        </div>
+    </div>
+
     <script>
         // Function to get the current date and format it in Japanese
         function getCurrentFormattedJapaneseDate() {
             const date = new Date();
-            // Options for Japanese date formatting (Kanji for year, month, day, and weekday)
-            // Example: 2023年1月25日水曜日 (Wednesday, January 25, 2023)
             const japaneseDateOptions = {
                 year: 'numeric',
                 month: 'long',
@@ -83,19 +163,14 @@
             return date.toLocaleDateString('ja-JP', japaneseDateOptions);
         }
 
-        // Function to update the content on the page
-        function updateContent() {
+        // Function to update the content on the page (date and greeting)
+        function updateDateAndGreeting() {
             const japaneseDate = getCurrentFormattedJapaneseDate();
             const dateElement = document.getElementById('dateDisplay');
             const messageElement = document.getElementById('messageDisplay');
 
-            // Set the date, only in Japanese
             dateElement.textContent = japaneseDate;
 
-            // Determine the appropriate Japanese greeting based on the time of day
-            // こんにちは (Konnichiwa) - General hello/good afternoon
-            // おはようございます (Ohayō gozaimasu) - Good morning (polite)
-            // こんばんは (Konbanwa) - Good evening
             const hour = new Date().getHours();
             let greeting = "こんにちは！"; // Default to Konnichiwa
 
@@ -104,14 +179,75 @@
             } else if (hour >= 18 || hour < 5) {
                 greeting = "こんばんは！"; // Good evening/night
             }
-
-            // Set the greeting. These common greetings are typically written in hiragana
-            // and thus do not have kanji to apply furigana to.
             messageElement.textContent = greeting;
         }
 
-        // Call updateContent when the page loads
-        window.onload = updateContent;
+        // Function to fetch and display NHK News Web Easy articles
+        async function fetchNHKNews() {
+            const newsContentDiv = document.getElementById('newsContent');
+            newsContentDiv.innerHTML = '<div class="loading-indicator">ニュースを読み込み中... (Loading news...)</div>'; // Show loading
+
+            const nhkNewsUrl = 'https://www3.nhk.or.jp/news/easy/news-list.json';
+            // Use a CORS proxy to fetch the data
+            // corsproxy.io is used here to bypass CORS restrictions.
+            const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(nhkNewsUrl)}`;
+            // console.log('Fetching news from proxy:', proxyUrl); // Uncomment for debugging
+
+            try {
+                const response = await fetch(proxyUrl);
+                // console.log('Proxy response status:', response.status); // Uncomment for debugging
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const newsData = await response.json();
+
+                // Clear loading indicator
+                newsContentDiv.innerHTML = '';
+
+                // Display the first 3 articles
+                const articlesToDisplay = newsData.slice(0, 3);
+
+                if (articlesToDisplay.length === 0) {
+                    newsContentDiv.innerHTML = '<div class="error-message">ニュースが見つかりませんでした。(No news found.)</div>';
+                    return;
+                }
+
+                articlesToDisplay.forEach(article => {
+                    const articleDiv = document.createElement('div');
+                    articleDiv.className = 'news-article';
+
+                    // NHK's JSON provides 'title_with_ruby' which already includes <ruby> tags.
+                    const titleElement = document.createElement('h3');
+                    titleElement.innerHTML = article.title_with_ruby; // Use innerHTML to render ruby tags
+
+                    const linkElement = document.createElement('a');
+                    // Construct the full URL for the NHK News Web Easy article.
+                    linkElement.href = `https://www3.nhk.or.jp/news/easy/${article.news_id}/${article.news_id}.html`;
+                    linkElement.target = '_blank'; // Open in new tab
+                    linkElement.className = 'text-blue-500 hover:underline text-sm block mt-2';
+                    linkElement.innerHTML = '<ruby>元<rt>もと</rt></ruby>の<ruby>記事<rt>きじ</rt></ruby>を<ruby>読<rt>よ</rt></ruby>む'; // Read original article
+
+                    articleDiv.appendChild(titleElement);
+                    // Note: This MVP only displays the title and a link.
+                    // Fetching and parsing the full article summary with furigana dynamically
+                    // would require more advanced techniques (e.g., server-side scraping or a more
+                    // sophisticated client-side parsing that might still be subject to CORS on content).
+                    articleDiv.appendChild(linkElement);
+
+                    newsContentDiv.appendChild(articleDiv);
+                });
+
+            } catch (error) {
+                console.error('ニュースの取得に失敗しました:', error); // Log the error to console
+                newsContentDiv.innerHTML = `<div class="error-message">ニュースの読み込み中にエラーが発生しました。<br>(${error.message})</div>`; // Display user-friendly error
+            }
+        }
+
+        // Call functions when the page loads
+        window.onload = () => {
+            updateDateAndGreeting();
+            fetchNHKNews();
+        };
     </script>
 </body>
 </html>
