@@ -16,6 +16,36 @@
   <div id="date"></div>
   <div id="greeting"></div>
 
+  <div id="news">
+  <h2>今日のニュース</h2>
+  <ul id="news-list"></ul>
+</div>
+
+<script>
+  async function loadNHKNews() {
+    const rssUrl = 'https://www3.nhk.or.jp/news/easy/rss/easy-news.xml';
+    const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`);
+    const data = await response.json();
+    
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(data.contents, "application/xml");
+    
+    const items = xmlDoc.querySelectorAll("item");
+    const list = document.getElementById("news-list");
+    
+    for (let i = 0; i < Math.min(3, items.length); i++) {
+      const title = items[i].querySelector("title").textContent;
+      const link = items[i].querySelector("link").textContent;
+      
+      const li = document.createElement("li");
+      li.innerHTML = `<a href="${link}" target="_blank">${title}</a>`;
+      list.appendChild(li);
+    }
+  }
+
+  loadNHKNews();
+</script>
+
   <script>
     function getJapaneseDate() {
       const now = new Date();
