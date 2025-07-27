@@ -2,53 +2,44 @@ name: Update NHK Easy News
 
 on:
   schedule:
-    - cron: '0 */6 * * *' # ✅ Runs every 6 hours
-  workflow_dispatch: # ✅ Allows manual run
+    - cron: '0 */6 * * *' # Every 6 hours
+  workflow_dispatch:
 
 permissions:
-  contents: write  # ✅ Required for committing changes
+  contents: write
 
 jobs:
   fetch-news:
     runs-on: ubuntu-latest
 
     steps:
-      # ✅ 1. Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
           persist-credentials: false
           fetch-depth: 0
 
-      # ✅ 2. Install XML tools
       - name: Install XML utilities
         run: sudo apt-get install -y libxml2-utils
 
-      # ✅ 3. Fetch NHK RSS and build JSON
       - name: Fetch NHK RSS and convert to JSON
         run: |
           mkdir -p data
-
           echo "📥 Fetching NHK Easy News RSS..."
           curl -s "https://www3.nhk.or.jp/news/easy/rss/easy-news.xml" -o rss.xml
 
           echo "✅ RSS downloaded. Extracting headlines..."
-
-          # Extract <title> and <link> ignoring XML namespaces
           raw_titles=$(xmllint --xpath "//*[local-name()='item']/*[local-name()='title']/text()" rss.xml || true)
           raw_links=$(xmllint --xpath "//*[local-name()='item']/*[local-name()='link']/text()" rss.xml || true)
 
-          # Ensure we got something
           if [ -z "$raw_titles" ] || [ -z "$raw_links" ]; then
             echo "❌ Failed to extract titles or links from RSS"
             exit 1
           fi
 
-          # Split titles and links into lines
           titles=$(echo "$raw_titles" | tr ' ' '\n')
           links=$(echo "$raw_links" | tr ' ' '\n')
 
-          # Build JSON (top 5 items)
           echo '{ "items": [' > data/news.json
           i=0
           while read -r title && read -r link <&3; do
@@ -58,15 +49,15 @@ jobs:
             if [ $i -ge 5 ]; then break; fi
           done <<< "$titles" 3<<< "$links"
 
-          # Remove trailing comma and close JSON
           sed -i '$ s/,$//' data/news.json
           echo ']}' >> data/news.json
 
           echo "✅ news.json updated with $i headlines:"
           cat data/news.json
 
-      # ✅ 4. Commit and push if there are changes
       - name: Commit and Push changes
+        env:
+          GIT_PUSH_URL: https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "actions@github.com"
@@ -76,4 +67,5 @@ jobs:
           else
             echo "📤 Committing and pushing changes..."
             git commit -m "Update NHK news"
-            git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.r_
+            git push "$GIT_PUSH_URL" HEAD:main
+          fi
