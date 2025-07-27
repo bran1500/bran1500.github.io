@@ -30,8 +30,8 @@ jobs:
           curl -s "https://www3.nhk.or.jp/news/easy/rss/easy-news.xml" -o rss.xml
 
           # Extract titles and links (first 5)
-          titles=($(xmllint --xpath "//item/title/text()" rss.xml | head -n 5))
-          links=($(xmllint --xpath "//item/link/text()" rss.xml | head -n 5))
+titles=($(xmllint --xpath "//*[local-name()='item']/*[local-name()='title']/text()" rss.xml | head -n 5))
+links=($(xmllint --xpath "//*[local-name()='item']/*[local-name()='link']/text()" rss.xml | head -n 5))
 
           # Build JSON
           echo '{ "items": [' > data/news.json
