@@ -88,7 +88,7 @@
             gap: 1.5rem;
             text-align: left; /* Align text to the left */
             position: relative; /* For N5 tag positioning */
-            margin-bottom: 2rem; /* Space below this card */
+            /* margin-bottom: 2rem; // Removed as audio card is gone, no need for extra space below */
         }
         .llm-content-section h2 {
             font-size: 2rem; /* text-3xl */
@@ -143,54 +143,8 @@
             }
         }
 
-        /* Audio Card Styling */
-        .audio-card {
-            background-color: #ffffff;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-            border-radius: 1.5rem;
-            padding: 2.5rem;
-            max-width: 90%;
-            width: 800px;
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-            text-align: center;
-            position: relative;
-        }
-        .audio-card h2 {
-            font-size: 2rem;
-            font-weight: 800;
-            color: #2c3e50;
-            text-align: center;
-            margin-bottom: 1.5rem;
-        }
-        .audio-text-display {
-            font-size: 1.5rem;
-            color: #34495e;
-            line-height: 1.8;
-            min-height: 50px; /* Ensure some height */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .play-button {
-            background-color: #ffc107; /* Yellow button */
-            color: #333;
-            padding: 0.75rem 1.5rem;
-            border-radius: 9999px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-            align-self: center;
-            margin-top: 1rem;
-        }
-        .play-button:hover {
-            background-color: #e0a800; /* Darker yellow on hover */
-        }
-        .play-button:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
+        /* Removed Audio Card Styling */
+        /* .audio-card, .audio-text-display, .play-button styles are removed */
 
         /* Furigana styling - REMOVED GLOBALLY */
         /* ruby and rt styles are removed as furigana will no longer be used */
@@ -229,10 +183,10 @@
             .combined-info-card .weather-icon {
                 margin-bottom: 0; /* No bottom margin when stacked */
             }
-            .llm-content-section h2, .audio-card h2 {
+            .llm-content-section h2 { /* Removed audio-card h2 */
                 font-size: 1.75rem;
             }
-            .llm-generated-text, .audio-text-display {
+            .llm-generated-text { /* Removed audio-text-display */
                 font-size: 1.25rem;
             }
         }
@@ -268,8 +222,8 @@
         </button>
     </div>
 
-    <!-- Audio Card -->
-    <div class="audio-card">
+    <!-- Audio Card - REMOVED FOR NOW -->
+    <!-- <div class="audio-card">
         <h2>今日の音声 (Today's Audio)</h2>
         <div id="audioTextDisplay" class="audio-text-display">
             <div class="loading-indicator">音声を生成中... (Generating audio...)</div>
@@ -277,7 +231,7 @@
         <button id="playAudioButton" class="play-button" onclick="generateAndPlayJapaneseAudio()">
             ▶️ 音声を再生 (Play Audio)
         </button>
-    </div>
+    </div> -->
 
     <script>
         // Function to get the current date and format it in Japanese
@@ -375,7 +329,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                const geminiResult = await geminiResponse.json();
+                const geminiResult = await geminiResponse.json(); 
 
                 let combinedSentence = "日付と天気情報を取得できませんでした。"; // Default error message
                 if (geminiResult.candidates && geminiResult.candidates.length > 0 &&
@@ -444,7 +398,8 @@
             }
         }
 
-        // Function to generate and play Japanese audio using TTS
+        // Function to generate and play Japanese audio using TTS (PARKED FOR NOW)
+        /*
         async function generateAndPlayJapaneseAudio() {
             const audioTextDisplay = document.getElementById('audioTextDisplay');
             const playAudioButton = document.getElementById('playAudioButton');
@@ -473,6 +428,15 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
+                // Check for HTTP errors first
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    if (response.status === 503 && errorData.error && errorData.error.message.includes("overloaded")) {
+                        throw new Error(`モデルが過負荷状態です。しばらくしてからもう一度お試しください。(Model overloaded. Please try again later.)`);
+                    }
+                    throw new Error(`HTTPエラー！ステータス: ${response.status} - ${errorData.error ? errorData.error.message : '不明なエラー'}`);
+                }
+
                 const result = await response.json();
 
                 let generatedText = "音声コンテンツを生成できませんでした。";
@@ -482,37 +446,54 @@
                     generatedText = result.candidates[0].content.parts[0].text;
                 } else {
                     console.error('LLM audio content response structure unexpected:', result);
+                    generatedText = 'LLMからの応答が期待された形式ではありませんでした。(LLM response structure unexpected.)';
                 }
 
                 audioTextDisplay.textContent = generatedText;
 
                 // Use Web Speech API for Text-to-Speech
                 if ('speechSynthesis' in window) {
+                    console.log('SpeechSynthesis supported.');
                     const utterance = new SpeechSynthesisUtterance(generatedText);
                     utterance.lang = 'ja-JP'; // Set language to Japanese
 
-                    // Find a Japanese voice if available
-                    const voices = window.speechSynthesis.getVoices();
-                    const japaneseVoice = voices.find(voice => voice.lang === 'ja-JP' || voice.lang === 'ja_JP');
-                    if (japaneseVoice) {
-                        utterance.voice = japaneseVoice;
+                    // Ensure voices are loaded before trying to select one
+                    const speakUtterance = () => {
+                        const voices = window.speechSynthesis.getVoices();
+                        const japaneseVoice = voices.find(voice => voice.lang === 'ja-JP' || voice.lang === 'ja_JP');
+                        if (japaneseVoice) {
+                            utterance.voice = japaneseVoice;
+                            console.log('Japanese voice selected:', japaneseVoice.name);
+                        } else {
+                            console.warn('Japanese voice not found, using default. Available voices:', voices.map(v => v.lang + ' ' + v.name));
+                        }
+
+                        utterance.onend = () => {
+                            console.log('Speech finished.');
+                            playAudioButton.disabled = false; // Re-enable button after speech ends
+                        };
+                        utterance.onerror = (event) => {
+                            console.error('SpeechSynthesisUtterance error:', event);
+                            audioTextDisplay.textContent = '音声再生に失敗しました。(Failed to play audio.)';
+                            playAudioButton.disabled = false;
+                        };
+
+                        window.speechSynthesis.speak(utterance);
+                        console.log('Attempting to speak:', generatedText);
+                    };
+
+                    // If voices are already loaded, speak immediately. Otherwise, wait for them.
+                    if (window.speechSynthesis.getVoices().length > 0) {
+                        speakUtterance();
                     } else {
-                        console.warn('Japanese voice not found, using default.');
+                        window.speechSynthesis.onvoiceschanged = speakUtterance;
+                        console.log('Waiting for voices to be loaded...');
                     }
-
-                    utterance.onend = () => {
-                        playAudioButton.disabled = false; // Re-enable button after speech ends
-                    };
-                    utterance.onerror = (event) => {
-                        console.error('SpeechSynthesisUtterance error:', event);
-                        audioTextDisplay.textContent = '音声再生に失敗しました。(Failed to play audio.)';
-                        playAudioButton.disabled = false;
-                    };
-
-                    window.speechSynthesis.speak(utterance);
+                    
                 } else {
                     audioTextDisplay.textContent = 'お使いのブラウザは音声合成に対応していません。(Your browser does not support speech synthesis.)';
                     playAudioButton.disabled = false;
+                    console.error('SpeechSynthesis not supported in this browser.');
                 }
 
             } catch (error) {
@@ -521,13 +502,14 @@
                 playAudioButton.disabled = false;
             }
         }
+        */
 
         // Call all functions when the page loads
         window.onload = () => {
             updateSalutationDisplay(); // Salutation first
             generateCombinedDateAndWeather(); // Combined date and weather
             generateDailyJapaneseContent(); // LLM generated content (frozen)
-            generateAndPlayJapaneseAudio(); // New audio card function
+            // generateAndPlayJapaneseAudio(); // Audio card function - COMMENTED OUT
         };
     </script>
 </body>
