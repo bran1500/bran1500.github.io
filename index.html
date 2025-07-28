@@ -88,6 +88,7 @@
             gap: 1.5rem;
             text-align: left; /* Align text to the left */
             position: relative; /* For N5 tag positioning */
+            margin-bottom: 2rem; /* Space below this card */
         }
         .llm-content-section h2 {
             font-size: 2rem; /* text-3xl */
@@ -142,6 +143,55 @@
             }
         }
 
+        /* Audio Card Styling */
+        .audio-card {
+            background-color: #ffffff;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border-radius: 1.5rem;
+            padding: 2.5rem;
+            max-width: 90%;
+            width: 800px;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            text-align: center;
+            position: relative;
+        }
+        .audio-card h2 {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        .audio-text-display {
+            font-size: 1.5rem;
+            color: #34495e;
+            line-height: 1.8;
+            min-height: 50px; /* Ensure some height */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .play-button {
+            background-color: #ffc107; /* Yellow button */
+            color: #333;
+            padding: 0.75rem 1.5rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            align-self: center;
+            margin-top: 1rem;
+        }
+        .play-button:hover {
+            background-color: #e0a800; /* Darker yellow on hover */
+        }
+        .play-button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
         /* Furigana styling - REMOVED GLOBALLY */
         /* ruby and rt styles are removed as furigana will no longer be used */
 
@@ -179,10 +229,10 @@
             .combined-info-card .weather-icon {
                 margin-bottom: 0; /* No bottom margin when stacked */
             }
-            .llm-content-section h2 {
+            .llm-content-section h2, .audio-card h2 {
                 font-size: 1.75rem;
             }
-            .llm-generated-text {
+            .llm-generated-text, .audio-text-display {
                 font-size: 1.25rem;
             }
         }
@@ -204,7 +254,7 @@
         </div>
     </div>
 
-    <!-- LLM Generated Content Section -->
+    <!-- LLM Generated Content Section (Frozen) -->
     <div class="llm-content-section">
         <h2>今日の日本語 (Today's Japanese)</h2>
         <!-- JLPT N5 Level Tag -->
@@ -215,6 +265,17 @@
         <!-- Refresh Button -->
         <button id="refreshButton" class="refresh-button" onclick="generateDailyJapaneseContent()">
             新しい文章を生成 (Generate New Sentence)
+        </button>
+    </div>
+
+    <!-- Audio Card -->
+    <div class="audio-card">
+        <h2>今日の音声 (Today's Audio)</h2>
+        <div id="audioTextDisplay" class="audio-text-display">
+            <div class="loading-indicator">音声を生成中... (Generating audio...)</div>
+        </div>
+        <button id="playAudioButton" class="play-button" onclick="generateAndPlayJapaneseAudio()">
+            ▶️ 音声を再生 (Play Audio)
         </button>
     </div>
 
@@ -366,7 +427,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                const result = await response.json(); /* ADDED 'await' HERE */
+                const result = await response.json(); 
 
                 if (result.candidates && result.candidates.length > 0 &&
                     result.candidates[0].content && result.candidates[0].content.parts &&
@@ -383,11 +444,90 @@
             }
         }
 
+        // Function to generate and play Japanese audio using TTS
+        async function generateAndPlayJapaneseAudio() {
+            const audioTextDisplay = document.getElementById('audioTextDisplay');
+            const playAudioButton = document.getElementById('playAudioButton');
+            audioTextDisplay.innerHTML = '<div class="loading-indicator">音声を生成中... (Generating audio...)</div>';
+            playAudioButton.disabled = true; // Disable button during generation/playback
+
+            let chatHistory = [];
+            const prompt = `
+                JLPT N5レベルの日本語学習者向けの簡単な日本語の文章を一つ生成してください。
+                内容は、ゲーム関連の短いフレーズや、ゲーム実況で使われそうな日常的な表現です。
+                漢字にはふりがなを付けないでください。
+                N5レベルの語彙と文法のみを使用してください。
+                例: 敵が来ました！
+                例: やったー！
+                文章は短く、シンプルにしてください。
+                `;
+
+            chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+            const payload = { contents: chatHistory };
+            const geminiApiKey = 'AIzaSyDDULMyu3K1PB7JzJwIcWgwUbP8XEyGJ7Y'; // Your Gemini API Key
+            const geminiApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`;
+
+            try {
+                const response = await fetch(geminiApiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+
+                let generatedText = "音声コンテンツを生成できませんでした。";
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    generatedText = result.candidates[0].content.parts[0].text;
+                } else {
+                    console.error('LLM audio content response structure unexpected:', result);
+                }
+
+                audioTextDisplay.textContent = generatedText;
+
+                // Use Web Speech API for Text-to-Speech
+                if ('speechSynthesis' in window) {
+                    const utterance = new SpeechSynthesisUtterance(generatedText);
+                    utterance.lang = 'ja-JP'; // Set language to Japanese
+
+                    // Find a Japanese voice if available
+                    const voices = window.speechSynthesis.getVoices();
+                    const japaneseVoice = voices.find(voice => voice.lang === 'ja-JP' || voice.lang === 'ja_JP');
+                    if (japaneseVoice) {
+                        utterance.voice = japaneseVoice;
+                    } else {
+                        console.warn('Japanese voice not found, using default.');
+                    }
+
+                    utterance.onend = () => {
+                        playAudioButton.disabled = false; // Re-enable button after speech ends
+                    };
+                    utterance.onerror = (event) => {
+                        console.error('SpeechSynthesisUtterance error:', event);
+                        audioTextDisplay.textContent = '音声再生に失敗しました。(Failed to play audio.)';
+                        playAudioButton.disabled = false;
+                    };
+
+                    window.speechSynthesis.speak(utterance);
+                } else {
+                    audioTextDisplay.textContent = 'お使いのブラウザは音声合成に対応していません。(Your browser does not support speech synthesis.)';
+                    playAudioButton.disabled = false;
+                }
+
+            } catch (error) {
+                console.error('音声コンテンツの生成に失敗しました:', error);
+                audioTextDisplay.innerHTML = `<div class="error-message">音声コンテンツの生成中にエラーが発生しました。<br>(${error.message})</div>`;
+                playAudioButton.disabled = false;
+            }
+        }
+
         // Call all functions when the page loads
         window.onload = () => {
             updateSalutationDisplay(); // Salutation first
-            generateCombinedDateAndWeather(); // New combined function
+            generateCombinedDateAndWeather(); // Combined date and weather
             generateDailyJapaneseContent(); // LLM generated content (frozen)
+            generateAndPlayJapaneseAudio(); // New audio card function
         };
     </script>
 </body>
