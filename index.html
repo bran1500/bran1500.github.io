@@ -80,10 +80,17 @@
             font-size: 1.5rem; /* text-2xl */
             font-weight: 600;
             color: #28a745; /* Green for weather */
+            display: flex; /* Use flex to center icon and text */
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            min-height: 100px; /* Ensure some height for content */
         }
         .weather-display-text img {
             width: 50px; /* Size for weather icon */
             height: 50px;
+            margin-bottom: 0.5rem; /* Space between icon and text */
         }
 
         .llm-content-section {
@@ -152,19 +159,8 @@
             }
         }
 
-        /* Furigana styling - REMOVED for LLM content, kept for fixed city name */
-        ruby {
-            display: inline-block; /* Use inline-block for better control over spacing */
-            line-height: 1; /* Keep the overall line height compact */
-            vertical-align: baseline; /* Align the base text of ruby with surrounding text */
-            text-align: center; /* Center furigana over its base */
-        }
-        rt {
-            font-size: 0.75em; /* Smaller font for furigana */
-            color: #888; /* Lighter color for furigana */
-            user-select: none; /* Prevent selection of furigana */
-            line-height: 1; /* Compact line height for the furigana text itself */
-        }
+        /* Furigana styling - REMOVED GLOBALLY */
+        /* ruby and rt styles are removed as furigana will no longer be used */
 
         .loading-indicator {
             text-align: center;
@@ -265,16 +261,18 @@
         // Function to fetch and display weather information
         async function fetchWeather() {
             const weatherDisplayDiv = document.getElementById('weatherDisplay');
+            weatherDisplayDiv.innerHTML = '<div class="loading-indicator">天気情報を読み込み中... (Loading weather info...)</div>';
+
             const apiKey = '50104961ae75c350112b68c14da1741a'; // Your OpenWeatherMap API Key
             const city = 'Tokyo'; // You can change this to any city, e.g., 'Osaka', 'Kyoto'
             const lang = 'ja'; // For Japanese weather description
             const units = 'metric'; // For Celsius temperature
 
-            // Mapping for city names to Japanese with furigana
+            // Mapping for city names to Japanese (plain text)
             const japaneseCityNames = {
-                'Tokyo': { kanji: '東京', furigana: 'とうきょう' },
-                'Osaka': { kanji: '大阪', furigana: 'おおさか' },
-                'Kyoto': { kanji: '京都', furigana: 'きょうと' },
+                'Tokyo': '東京',
+                'Osaka': '大阪',
+                'Kyoto': '京都',
                 // Add more cities as needed
             };
 
@@ -303,15 +301,48 @@
                 const iconCode = weatherData.weather[0].icon;
                 const iconUrl = `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
 
-                // Get Japanese city name and furigana
-                const displayCity = japaneseCityNames[city] || { kanji: city, furigana: '' }; // Fallback if city not in map
+                // Get Japanese city name (plain text)
+                const displayCityJapanese = japaneseCityNames[city] || city; // Fallback to English if not in map
 
-                // For weather, we still use ruby tags for city name as it's a fixed string
+                // --- Use LLM to generate the weather sentence ---
+                let chatHistory = [];
+                const weatherPrompt = `
+                    以下の情報を使って、自然な日本語で今日の天気を説明する短い文章を生成してください。
+                    ふりがなは付けないでください。
+
+                    都市: ${displayCityJapanese}
+                    気温: ${temperature}°C
+                    天気: ${description}
+
+                    例: 今日は東京の天気は25度で晴れです。
+                    例: 大阪は曇りで、気温は20度です。
+                `;
+
+                chatHistory.push({ role: "user", parts: [{ text: weatherPrompt }] });
+                const payload = { contents: chatHistory };
+                const geminiApiKey = 'AIzaSyDDULMyu3K1PB7JzJwIcWgwUbP8XEyGJ7Y'; // Your Gemini API Key
+                const geminiApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`;
+
+                const geminiResponse = await fetch(geminiApiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const geminiResult = await geminiResponse.json();
+
+                let weatherSentence = "天気情報を取得できませんでした。"; // Default error message
+                if (geminiResult.candidates && geminiResult.candidates.length > 0 &&
+                    geminiResult.candidates[0].content && geminiResult.candidates[0].content.parts &&
+                    geminiResult.candidates[0].content.parts.length > 0) {
+                    weatherSentence = geminiResult.candidates[0].content.parts[0].text;
+                } else {
+                    console.error('LLM weather response structure unexpected:', geminiResult);
+                }
+                // --- End LLM generation for weather ---
+
                 weatherDisplayDiv.innerHTML = `
-                    <p><ruby>${displayCity.kanji}<rt>${displayCity.furigana}</rt></ruby>の天気</p>
                     <img src="${iconUrl}" alt="${description}" onerror="this.onerror=null;this.src='https://placehold.co/50x50/cccccc/ffffff?text=天気';">
-                    <p>${temperature}°C</p>
-                    <p>${description}</p>
+                    <p>${weatherSentence}</p>
                 `;
             } catch (error) {
                 console.error('天気情報の取得に失敗しました:', error);
