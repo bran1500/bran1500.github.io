@@ -152,8 +152,19 @@
             }
         }
 
-        /* Furigana styling - REMOVED */
-        /* ruby and rt styles are removed as furigana will no longer be generated */
+        /* Furigana styling - REMOVED for LLM content, kept for fixed city name */
+        ruby {
+            display: inline-block; /* Use inline-block for better control over spacing */
+            line-height: 1; /* Keep the overall line height compact */
+            vertical-align: baseline; /* Align the base text of ruby with surrounding text */
+            text-align: center; /* Center furigana over its base */
+        }
+        rt {
+            font-size: 0.75em; /* Smaller font for furigana */
+            color: #888; /* Lighter color for furigana */
+            user-select: none; /* Prevent selection of furigana */
+            line-height: 1; /* Compact line height for the furigana text itself */
+        }
 
         .loading-indicator {
             text-align: center;
@@ -327,7 +338,8 @@
 
             chatHistory.push({ role: "user", parts: [{ text: prompt }] });
             const payload = { contents: chatHistory };
-            const apiKey = ""; // Canvas will automatically provide this API key for LLM calls.
+            // Gemini API Key: Inserted your provided key here
+            const apiKey = 'AIzaSyDDULMyu3K1PB7JzJwIcWgwUbP8XEyGJ7Y'; 
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
             try {
