@@ -86,55 +86,75 @@
             height: 50px;
         }
 
-        .news-section {
+        .llm-content-section {
             background-color: #ffffff;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
             border-radius: 1.5rem;
             padding: 2.5rem;
             max-width: 90%;
-            width: 800px; /* Wider for news content */
+            width: 800px; /* Wider for content */
             display: flex;
             flex-direction: column;
             gap: 1.5rem;
-            text-align: left; /* Align news text to the left */
+            text-align: left; /* Align text to the left */
+            position: relative; /* For N5 tag positioning */
         }
-        .news-section h2 {
+        .llm-content-section h2 {
             font-size: 2rem; /* text-3xl */
             font-weight: 800;
             color: #2c3e50;
             text-align: center;
             margin-bottom: 1.5rem;
         }
-        .news-article {
-            border-bottom: 1px solid #e0e7eb; /* Light separator */
-            padding-bottom: 1.5rem;
-            margin-bottom: 1.5rem;
-        }
-        .news-article:last-child {
-            border-bottom: none; /* No border for the last article */
-            margin-bottom: 0;
-            padding-bottom: 0;
-        }
-        .news-article h3 {
+        .llm-generated-text {
             font-size: 1.5rem; /* text-2xl */
+            color: #34495e;
+            line-height: 1.8; /* Keep a consistent line height for the main text */
+            text-align: center; /* Center the generated text */
+            min-height: 100px; /* Ensure some height even if content is short */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        /* Refresh button styling */
+        .refresh-button {
+            background-color: #007bff; /* Blue button */
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 9999px; /* Fully rounded */
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            align-self: center; /* Center the button */
+            margin-top: 1rem; /* Space above button */
+        }
+        .refresh-button:hover {
+            background-color: #0056b3; /* Darker blue on hover */
+        }
+
+        /* JLPT N5 Tag styling */
+        .jlpt-n5-tag {
+            background-color: #28a745; /* Green background */
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.75rem; /* Rounded corners */
+            font-size: 0.875rem; /* text-sm */
             font-weight: 700;
-            color: #34495e; /* Slightly darker blue-gray for headlines */
-            margin-bottom: 0.75rem;
+            position: absolute; /* Position relative to parent .llm-content-section */
+            top: 1.5rem; /* Adjust as needed */
+            right: 1.5rem; /* Adjust as needed */
         }
-        .news-article p {
-            font-size: 1.125rem; /* text-lg */
-            color: #555;
-            line-height: 1.6;
+        @media (max-width: 768px) {
+            .jlpt-n5-tag {
+                top: 1rem;
+                right: 1rem;
+                font-size: 0.75rem; /* Smaller on mobile */
+            }
         }
-        /* Furigana styling */
-        ruby {
-            ruby-align: center;
-        }
-        rt {
-            font-size: 0.75em; /* Smaller font for furigana */
-            color: #888; /* Lighter color for furigana */
-            user-select: none; /* Prevent selection of furigana */
-        }
+
+        /* Furigana styling - REMOVED */
+        /* ruby and rt styles are removed as furigana will no longer be generated */
+
         .loading-indicator {
             text-align: center;
             padding: 2rem;
@@ -150,14 +170,11 @@
 
         /* Responsive adjustments for smaller text */
         @media (max-width: 768px) {
-            .news-section h2 {
+            .llm-content-section h2 {
                 font-size: 1.75rem;
             }
-            .news-article h3 {
+            .llm-generated-text {
                 font-size: 1.25rem;
-            }
-            .news-article p {
-                font-size: 1rem;
             }
         }
     </style>
@@ -185,11 +202,18 @@
         </div>
     </div>
 
-    <div class="news-section">
-        <h2>NHKニュース・ウェブ・イージー (やさしい日本語)</h2> <!-- NHK News Web Easy (Easy Japanese) -->
-        <div id="newsContent">
-            <div class="loading-indicator">ニュースを読み込み中... (Loading news...)</div>
+    <!-- LLM Generated Content Section -->
+    <div class="llm-content-section">
+        <h2>今日の日本語 (Today's Japanese)</h2>
+        <!-- JLPT N5 Level Tag -->
+        <span class="jlpt-n5-tag">JLPT N5</span>
+        <div id="llmContent" class="llm-generated-text">
+            <div class="loading-indicator">コンテンツを生成中... (Generating content...)</div>
         </div>
+        <!-- Refresh Button -->
+        <button id="refreshButton" class="refresh-button" onclick="generateDailyJapaneseContent()">
+            新しい文章を生成 (Generate New Sentence)
+        </button>
     </div>
 
     <script>
@@ -225,65 +249,6 @@
                 greeting = "こんばんは！"; // Good evening/night
             }
             salutationElement.textContent = greeting;
-        }
-
-        // Function to fetch and display NHK News Web Easy articles
-        async function fetchNHKNews() {
-            const newsContentDiv = document.getElementById('newsContent');
-            newsContentDiv.innerHTML = '<div class="loading-indicator">ニュースを読み込み中... (Loading news...)</div>'; // Show loading
-
-            const nhkNewsUrl = 'https://www3.nhk.or.jp/news/easy/news-list.json';
-            // Using a CORS proxy. Public proxies can be unreliable.
-            const proxyUrl = `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(nhkNewsUrl)}`;
-            console.log('Fetching news from proxy:', proxyUrl); // Log the proxy URL
-
-            try {
-                const response = await fetch(proxyUrl);
-                console.log('Proxy response status:', response.status); // Log the response status
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const newsData = await response.json();
-                console.log('Received news data:', newsData); // Log the full news data to inspect its structure
-
-                // Clear loading indicator
-                newsContentDiv.innerHTML = '';
-
-                // Display the first 3 articles
-                const articlesToDisplay = newsData.slice(0, 3);
-
-                if (articlesToDisplay.length === 0) {
-                    newsContentDiv.innerHTML = '<div class="error-message">ニュースが見つかりませんでした。(No news found.)</div>';
-                    return;
-                }
-
-                articlesToDisplay.forEach(article => {
-                    const articleDiv = document.createElement('div');
-                    articleDiv.className = 'news-article';
-
-                    // Check if title_with_ruby exists, otherwise use plain title or a fallback
-                    const articleTitle = article.title_with_ruby || article.title || 'タイトルなし (No Title)';
-
-                    const titleElement = document.createElement('h3');
-                    titleElement.innerHTML = articleTitle; // Use innerHTML to render ruby tags
-
-                    const linkElement = document.createElement('a');
-                    linkElement.href = `https://www3.nhk.or.jp/news/easy/${article.news_id}/${article.news_id}.html`;
-                    linkElement.target = '_blank';
-                    linkElement.className = 'text-blue-500 hover:underline text-sm block mt-2';
-                    linkElement.innerHTML = '<ruby>元<rt>もと</rt></ruby>の<ruby>記事<rt>きじ</rt></ruby>を<ruby>読<rt>よ</rt></ruby>む';
-
-                    articleDiv.appendChild(titleElement);
-                    articleDiv.appendChild(linkElement);
-
-                    newsContentDiv.appendChild(articleDiv);
-                });
-
-            } catch (error) {
-                console.error('ニュースの取得に失敗しました:', error);
-                newsContentDiv.innerHTML = `<div class="error-message">ニュースの読み込み中にエラーが発生しました。<br>(${error.message})<br>公共のプロキシは信頼性が低い場合があります。より安定した解決策にはバックエンドサーバーが必要です。(Error loading news. Public proxies can be unreliable. A more stable solution requires a backend server.)<br>ブラウザのコンソールを確認してください。(Check browser console.)</div>`;
-            }
         }
 
         // Function to fetch and display weather information
@@ -330,6 +295,7 @@
                 // Get Japanese city name and furigana
                 const displayCity = japaneseCityNames[city] || { kanji: city, furigana: '' }; // Fallback if city not in map
 
+                // For weather, we still use ruby tags for city name as it's a fixed string
                 weatherDisplayDiv.innerHTML = `
                     <p><ruby>${displayCity.kanji}<rt>${displayCity.furigana}</rt></ruby>の天気</p>
                     <img src="${iconUrl}" alt="${description}" onerror="this.onerror=null;this.src='https://placehold.co/50x50/cccccc/ffffff?text=天気';">
@@ -342,12 +308,58 @@
             }
         }
 
+        // Function to generate daily Japanese content using LLM
+        async function generateDailyJapaneseContent() {
+            const llmContentDiv = document.getElementById('llmContent');
+            llmContentDiv.innerHTML = '<div class="loading-indicator">コンテンツを生成中... (Generating content...)</div>';
+
+            let chatHistory = [];
+            // IMPORTANT: Modified prompt to NOT include ruby tags for the main content
+            const prompt = `
+                毎日変わる、JLPT N5レベルの日本語学習者向けの簡単な日本語の文章を一つ生成してください。
+                内容は、日本の文化、季節、または日常の簡単な出来事に関するものです。
+                漢字にはふりがなを付けないでください。
+                N5レベルの語彙と文法のみを使用してください。
+                例: 今日は晴れです。
+                例: 私は毎日日本語を勉強します。
+                文章は短く、シンプルにしてください。
+                `;
+
+            chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+            const payload = { contents: chatHistory };
+            const apiKey = ""; // Canvas will automatically provide this API key for LLM calls.
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    // Use textContent to ensure no HTML rendering, just plain text
+                    llmContentDiv.textContent = text;
+                } else {
+                    llmContentDiv.innerHTML = '<div class="error-message">コンテンツの生成に失敗しました。(Failed to generate content.)</div>';
+                    console.error('LLM response structure unexpected:', result);
+                }
+            } catch (error) {
+                console.error('LLMコンテンツの生成に失敗しました:', error);
+                llmContentDiv.innerHTML = `<div class="error-message">コンテンツの生成中にエラーが発生しました。<br>(${error.message})</div>`;
+            }
+        }
+
         // Call all functions when the page loads
         window.onload = () => {
-            updateSalutationDisplay(); // New: Call salutation function first
-            updateDateDisplay(); // Updated: Call date function
-            fetchNHKNews();
-            fetchWeather();
+            updateSalutationDisplay(); // Salutation first
+            updateDateDisplay(); // Date in its card
+            fetchWeather(); // Weather in its card
+            generateDailyJapaneseContent(); // LLM generated content
         };
     </script>
 </body>
