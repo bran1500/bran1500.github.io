@@ -210,7 +210,7 @@
 
     <!-- LLM Generated Content Section (Frozen) -->
     <div class="llm-content-section">
-        <h2>今日の日本語 (Today's Japanese)</h2>
+        <h2>今日の日本語</h2>
         <!-- JLPT N5 Level Tag -->
         <span class="jlpt-n5-tag">JLPT N5</span>
         <div id="llmContent" class="llm-generated-text">
@@ -218,7 +218,7 @@
         </div>
         <!-- Refresh Button -->
         <button id="refreshButton" class="refresh-button" onclick="generateDailyJapaneseContent()">
-            新しい文章を生成 (Generate New Sentence)
+            新しい文章を生成
         </button>
     </div>
 
@@ -360,13 +360,18 @@
             llmContentDiv.innerHTML = '<div class="loading-indicator">コンテンツを生成中... (Generating content...)</div>';
 
             let chatHistory = [];
+            // Updated prompt for more variability in content
             const prompt = `
                 毎日変わる、JLPT N5レベルの日本語学習者向けの簡単な日本語の文章を一つ生成してください。
-                内容は、日本の文化、季節、または日常の簡単な出来事に関するものです。
+                内容は、日本の文化、季節、日常の簡単な出来事、趣味、食べ物、旅行、学校生活など、幅広いトピックから選んでください。
+                特定のテーマ（例：猫）に偏らないようにしてください。
                 漢字にはふりがなを付けないでください。
                 N5レベルの語彙と文法のみを使用してください。
                 例: 今日は晴れです。
                 例: 私は毎日日本語を勉強します。
+                例: 日本の夏は暑いです。
+                例: ラーメンはとても美味しいです。
+                例: 週末に友達と映画を見に行きます。
                 文章は短く、シンプルにしてください。
                 `;
 
