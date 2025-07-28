@@ -37,60 +37,43 @@
             }
         }
 
-        /* Container for side-by-side date and weather cards */
-        .date-weather-container {
-            display: flex;
-            flex-wrap: wrap; /* Allow wrapping on smaller screens */
-            justify-content: center;
-            gap: 1.5rem; /* Space between cards */
-            margin-bottom: 2rem; /* Space below this container */
-            width: 100%; /* Full width for the container */
-            max-width: 800px; /* Max width for larger screens */
-        }
-
-        /* Common card styling for date and weather */
-        .info-card {
+        /* Combined Date and Weather Card */
+        .combined-info-card {
             background-color: #ffffff; /* White background for the card */
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); /* Soft shadow */
             border-radius: 1.5rem; /* More rounded corners */
             padding: 2.5rem; /* Generous padding */
             text-align: center;
-            flex: 1; /* Allow cards to grow and shrink */
-            min-width: 280px; /* Minimum width before wrapping */
-            max-width: 48%; /* Max width to allow side-by-side on larger screens */
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            gap: 0.75rem; /* Space between elements inside cards */
+            max-width: 90%; /* Max width for responsiveness */
+            width: 800px; /* Wider for combined content */
+            display: flex; /* Use flexbox for columns */
+            align-items: center; /* Vertically center items in the row */
+            gap: 1.5rem; /* Space between columns */
+            margin-bottom: 2rem; /* Space below this card */
         }
-        @media (max-width: 768px) {
-            .info-card {
-                max-width: 90%; /* Stack on smaller screens */
-                width: 100%;
-            }
-        }
-
-        .date-display-text {
-            font-size: 1.875rem; /* text-3xl */
-            font-weight: 700; /* font-bold */
-            color: #2c3e50; /* Dark blue-gray for date */
-        }
-        .weather-display-text {
+        .combined-info-text {
             font-size: 1.5rem; /* text-2xl */
             font-weight: 600;
-            color: #28a745; /* Green for weather */
-            display: flex; /* Use flex to center icon and text */
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
+            color: #2c3e50; /* Dark blue-gray */
+            line-height: 1.6;
+            text-align: left; /* Align text to the left within its column */
+            flex: 2; /* Takes 2/3 of the space */
             min-height: 100px; /* Ensure some height for content */
+            display: flex; /* Use flex to vertically center text */
+            align-items: center;
+            justify-content: center; /* Center text if it's short */
         }
-        .weather-display-text img {
-            width: 50px; /* Size for weather icon */
-            height: 50px;
-            margin-bottom: 0.5rem; /* Space between icon and text */
+        .weather-icon-container {
+            flex: 1; /* Takes 1/3 of the space */
+            display: flex;
+            justify-content: center; /* Center icon horizontally */
+            align-items: center; /* Center icon vertically */
+            min-height: 100px; /* Match min-height of text column */
+        }
+        .weather-icon {
+            width: 80px; /* Larger size for weather icon in its own column */
+            height: 80px;
+            /* margin-bottom: 0.5rem; Removed as container handles spacing */
         }
 
         .llm-content-section {
@@ -177,6 +160,25 @@
 
         /* Responsive adjustments for smaller text */
         @media (max-width: 768px) {
+            .combined-info-card {
+                /* Removed flex-direction: column; to keep them side-by-side */
+                padding: 1.5rem;
+                width: 100%;
+            }
+            .combined-info-text, .weather-icon-container {
+                flex: none; /* Remove flex sizing on small screens */
+                width: 100%; /* Take full width */
+                max-width: 100%;
+            }
+            .combined-info-text {
+                text-align: center; /* Center text when stacked */
+            }
+            .combined-info-text, .weather-icon-container {
+                min-height: auto; /* Reset min-height for stacked layout */
+            }
+            .combined-info-card .weather-icon {
+                margin-bottom: 0; /* No bottom margin when stacked */
+            }
             .llm-content-section h2 {
                 font-size: 1.75rem;
             }
@@ -192,20 +194,13 @@
         <!-- Salutation will be inserted here by JavaScript -->
     </div>
 
-    <!-- Container for Date and Weather Cards (side-by-side) -->
-    <div class="date-weather-container">
-        <!-- Date Card -->
-        <div id="dateCard" class="info-card">
-            <div id="dateDisplay" class="date-display-text">
-                <!-- Japanese date will be inserted here by JavaScript -->
-            </div>
+    <!-- Combined Date and Weather Card -->
+    <div class="combined-info-card">
+        <div id="combinedInfoTextContainer" class="combined-info-text">
+            <div class="loading-indicator">日付と天気情報を読み込み中... (Loading date and weather info...)</div>
         </div>
-
-        <!-- Weather Card -->
-        <div id="weatherCard" class="info-card">
-            <div id="weatherDisplay" class="weather-display-text">
-                <div class="loading-indicator">天気情報を読み込み中... (Loading weather info...)</div>
-            </div>
+        <div id="weatherIconContainer" class="weather-icon-container">
+            <!-- Weather icon will be placed here by JavaScript -->
         </div>
     </div>
 
@@ -236,15 +231,7 @@
             return date.toLocaleDateString('ja-JP', japaneseDateOptions);
         }
 
-        // Function to update the date display
-        function updateDateDisplay() {
-            const japaneseDate = getCurrentFormattedJapaneseDate();
-            const dateElement = document.getElementById('dateDisplay');
-            // Format: "今は [日付] です。"
-            dateElement.textContent = `今は${japaneseDate}です。`;
-        }
-
-        // Function to update the salutation display
+        // Function to update the salutation display (frozen)
         function updateSalutationDisplay() {
             const salutationElement = document.getElementById('salutationDisplay');
             const hour = new Date().getHours();
@@ -258,42 +245,40 @@
             salutationElement.textContent = greeting;
         }
 
-        // Function to fetch and display weather information
-        async function fetchWeather() {
-            const weatherDisplayDiv = document.getElementById('weatherDisplay');
-            weatherDisplayDiv.innerHTML = '<div class="loading-indicator">天気情報を読み込み中... (Loading weather info...)</div>';
+        // Function to generate combined date and weather information using LLM
+        async function generateCombinedDateAndWeather() {
+            const combinedInfoTextContainer = document.getElementById('combinedInfoTextContainer');
+            const weatherIconContainer = document.getElementById('weatherIconContainer');
+            combinedInfoTextContainer.innerHTML = '<div class="loading-indicator">日付と天気情報を読み込み中... (Loading date and weather info...)</div>';
+            weatherIconContainer.innerHTML = ''; // Clear previous icon
 
-            const apiKey = '50104961ae75c350112b68c14da1741a'; // Your OpenWeatherMap API Key
-            const city = 'Tokyo'; // You can change this to any city, e.g., 'Osaka', 'Kyoto'
-            const lang = 'ja'; // For Japanese weather description
-            const units = 'metric'; // For Celsius temperature
+            const openWeatherApiKey = '50104961ae75c350112b68c14da1741a'; // Your OpenWeatherMap API Key
+            const city = 'Tokyo';
+            const lang = 'ja';
+            const units = 'metric';
 
-            // Mapping for city names to Japanese (plain text)
             const japaneseCityNames = {
                 'Tokyo': '東京',
                 'Osaka': '大阪',
                 'Kyoto': '京都',
-                // Add more cities as needed
             };
+            const displayCityJapanese = japaneseCityNames[city] || city;
 
-            if (!apiKey || apiKey === 'YOUR_OPENWEATHERMAP_API_KEY') {
-                weatherDisplayDiv.innerHTML = `<div class="error-message">天気情報を表示するにはOpenWeatherMapのAPIキーが必要です。<br>（APIキーが正しく設定されているか確認してください。）</div>`;
-                console.error('OpenWeatherMap API Key is missing or invalid. Please ensure it is correctly entered and active.');
+            if (!openWeatherApiKey || openWeatherApiKey === 'YOUR_OPENWEATHERMAP_API_KEY') {
+                combinedInfoTextContainer.innerHTML = `<div class="error-message">天気情報を表示するにはOpenWeatherMapのAPIキーが必要です。<br>（APIキーが正しく設定されているか確認してください。）</div>`;
+                console.error('OpenWeatherMap API Key is missing or invalid.');
                 return;
             }
 
-            const weatherApiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&lang=${lang}&units=${units}`;
+            const weatherApiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${openWeatherApiKey}&lang=${lang}&units=${units}`;
             
             try {
-                const response = await fetch(weatherApiUrl);
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    if (response.status === 401) {
-                        throw new Error(`APIキーが無効か、まだ有効になっていません。OpenWeatherMapのウェブサイトでキーを確認してください。(${errorData.message})`);
-                    }
-                    throw new Error(`HTTP error! status: ${response.status} - ${errorData.message}`);
+                const weatherResponse = await fetch(weatherApiUrl);
+                if (!weatherResponse.ok) {
+                    const errorData = await weatherResponse.json();
+                    throw new Error(`HTTP error! status: ${weatherResponse.status} - ${errorData.message}`);
                 }
-                const weatherData = await response.json();
+                const weatherData = await weatherResponse.json();
                 console.log('Received weather data:', weatherData);
 
                 const temperature = weatherData.main.temp;
@@ -301,24 +286,25 @@
                 const iconCode = weatherData.weather[0].icon;
                 const iconUrl = `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
 
-                // Get Japanese city name (plain text)
-                const displayCityJapanese = japaneseCityNames[city] || city; // Fallback to English if not in map
+                const currentJapaneseDate = getCurrentFormattedJapaneseDate();
 
-                // --- Use LLM to generate the weather sentence ---
+                // --- Use LLM to generate the combined date and weather sentence ---
                 let chatHistory = [];
-                const weatherPrompt = `
-                    以下の情報を使って、自然な日本語で今日の天気を説明する短い文章を生成してください。
+                const combinedPrompt = `
+                    以下の情報を使って、自然で丁寧な日本語（です・ます調）で、今日の日付と天気を説明する一つの短い文章を生成してください。
+                    敬語（謙譲語、尊敬語などの高度な形式）は使用しないでください。
                     ふりがなは付けないでください。
 
+                    日付: ${currentJapaneseDate}
                     都市: ${displayCityJapanese}
                     気温: ${temperature}°C
                     天気: ${description}
 
-                    例: 今日は東京の天気は25度で晴れです。
+                    例: 今日は2025年7月27日日曜日です。東京の天気は25度で晴れです。
                     例: 大阪は曇りで、気温は20度です。
                 `;
 
-                chatHistory.push({ role: "user", parts: [{ text: weatherPrompt }] });
+                chatHistory.push({ role: "user", parts: [{ text: combinedPrompt }] });
                 const payload = { contents: chatHistory };
                 const geminiApiKey = 'AIzaSyDDULMyu3K1PB7JzJwIcWgwUbP8XEyGJ7Y'; // Your Gemini API Key
                 const geminiApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`;
@@ -330,33 +316,35 @@
                 });
                 const geminiResult = await geminiResponse.json();
 
-                let weatherSentence = "天気情報を取得できませんでした。"; // Default error message
+                let combinedSentence = "日付と天気情報を取得できませんでした。"; // Default error message
                 if (geminiResult.candidates && geminiResult.candidates.length > 0 &&
                     geminiResult.candidates[0].content && geminiResult.candidates[0].content.parts &&
                     geminiResult.candidates[0].content.parts.length > 0) {
-                    weatherSentence = geminiResult.candidates[0].content.parts[0].text;
+                    combinedSentence = geminiResult.candidates[0].content.parts[0].text;
                 } else {
-                    console.error('LLM weather response structure unexpected:', geminiResult);
+                    console.error('LLM combined info response structure unexpected:', geminiResult);
                 }
-                // --- End LLM generation for weather ---
+                // --- End LLM generation for combined info ---
 
-                weatherDisplayDiv.innerHTML = `
-                    <img src="${iconUrl}" alt="${description}" onerror="this.onerror=null;this.src='https://placehold.co/50x50/cccccc/ffffff?text=天気';">
-                    <p>${weatherSentence}</p>
-                `;
+                // Update the text container
+                combinedInfoTextContainer.textContent = combinedSentence;
+
+                // Update the icon container
+                weatherIconContainer.innerHTML = `<img src="${iconUrl}" alt="${description}" class="weather-icon" onerror="this.onerror=null;this.src='https://placehold.co/80x80/cccccc/ffffff?text=天気';">`;
+
             } catch (error) {
-                console.error('天気情報の取得に失敗しました:', error);
-                weatherDisplayDiv.innerHTML = `<div class="error-message">天気情報の読み込み中にエラーが発生しました。<br>(${error.message})</div>`;
+                console.error('日付と天気情報の取得に失敗しました:', error);
+                combinedInfoTextContainer.innerHTML = `<div class="error-message">日付と天気情報の読み込み中にエラーが発生しました。<br>(${error.message})</div>`;
+                weatherIconContainer.innerHTML = ''; // Clear icon on error
             }
         }
 
-        // Function to generate daily Japanese content using LLM
+        // Function to generate daily Japanese content using LLM (frozen)
         async function generateDailyJapaneseContent() {
             const llmContentDiv = document.getElementById('llmContent');
             llmContentDiv.innerHTML = '<div class="loading-indicator">コンテンツを生成中... (Generating content...)</div>';
 
             let chatHistory = [];
-            // IMPORTANT: Modified prompt to NOT include ruby tags for the main content
             const prompt = `
                 毎日変わる、JLPT N5レベルの日本語学習者向けの簡単な日本語の文章を一つ生成してください。
                 内容は、日本の文化、季節、または日常の簡単な出来事に関するものです。
@@ -369,7 +357,6 @@
 
             chatHistory.push({ role: "user", parts: [{ text: prompt }] });
             const payload = { contents: chatHistory };
-            // Gemini API Key: Inserted your provided key here
             const apiKey = 'AIzaSyDDULMyu3K1PB7JzJwIcWgwUbP8XEyGJ7Y'; 
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
@@ -379,13 +366,12 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                const result = await response.json();
+                const result = await response.json(); /* ADDED 'await' HERE */
 
                 if (result.candidates && result.candidates.length > 0 &&
                     result.candidates[0].content && result.candidates[0].content.parts &&
                     result.candidates[0].content.parts.length > 0) {
                     const text = result.candidates[0].content.parts[0].text;
-                    // Use textContent to ensure no HTML rendering, just plain text
                     llmContentDiv.textContent = text;
                 } else {
                     llmContentDiv.innerHTML = '<div class="error-message">コンテンツの生成に失敗しました。(Failed to generate content.)</div>';
@@ -400,9 +386,8 @@
         // Call all functions when the page loads
         window.onload = () => {
             updateSalutationDisplay(); // Salutation first
-            updateDateDisplay(); // Date in its card
-            fetchWeather(); // Weather in its card
-            generateDailyJapaneseContent(); // LLM generated content
+            generateCombinedDateAndWeather(); // New combined function
+            generateDailyJapaneseContent(); // LLM generated content (frozen)
         };
     </script>
 </body>
