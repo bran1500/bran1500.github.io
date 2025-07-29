@@ -88,7 +88,7 @@
             gap: 1.5rem;
             text-align: left; /* Align text to the left */
             position: relative; /* For N5 tag positioning */
-            /* margin-bottom: 2rem; // Removed as audio card is gone, no need for extra space below */
+            margin-bottom: 2rem; /* Space below this card */
         }
         .llm-content-section h2 {
             font-size: 2rem; /* text-3xl */
@@ -143,6 +143,46 @@
             }
         }
 
+        /* Geography Card Styling */
+        .geography-card {
+            background-color: #ffffff;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border-radius: 1.5rem;
+            padding: 2.5rem;
+            max-width: 90%;
+            width: 800px;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            text-align: center;
+            position: relative;
+            margin-bottom: 2rem; /* Space below this card */
+        }
+        .geography-card h2 {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        /* Google Map container styling */
+        #map {
+            width: 100%;
+            height: 350px; /* Fixed height for the map */
+            border-radius: 0.75rem;
+            margin: 0 auto; /* Center the map */
+            border: 1px solid #ccc; /* Light border */
+        }
+        .geography-text-display {
+            font-size: 1.5rem;
+            color: #34495e;
+            line-height: 1.8;
+            min-height: 50px; /* Ensure some height */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
         /* Removed Audio Card Styling */
         /* .audio-card, .audio-text-display, .play-button styles are removed */
 
@@ -165,29 +205,31 @@
         /* Responsive adjustments for smaller text */
         @media (max-width: 768px) {
             .combined-info-card {
-                /* Removed flex-direction: column; to keep them side-by-side */
                 padding: 1.5rem;
                 width: 100%;
             }
             .combined-info-text, .weather-icon-container {
-                flex: none; /* Remove flex sizing on small screens */
-                width: 100%; /* Take full width */
+                flex: none;
+                width: 100%;
                 max-width: 100%;
             }
             .combined-info-text {
-                text-align: center; /* Center text when stacked */
+                text-align: center;
             }
             .combined-info-text, .weather-icon-container {
-                min-height: auto; /* Reset min-height for stacked layout */
+                min-height: auto;
             }
             .combined-info-card .weather-icon {
-                margin-bottom: 0; /* No bottom margin when stacked */
+                margin-bottom: 0;
             }
-            .llm-content-section h2 { /* Removed audio-card h2 */
+            .llm-content-section h2, .geography-card h2 {
                 font-size: 1.75rem;
             }
-            .llm-generated-text { /* Removed audio-text-display */
+            .llm-generated-text, .geography-text-display {
                 font-size: 1.25rem;
+            }
+            #map {
+                height: 250px; /* Adjust map height for smaller screens */
             }
         }
     </style>
@@ -201,7 +243,7 @@
     <!-- Combined Date and Weather Card -->
     <div class="combined-info-card">
         <div id="combinedInfoTextContainer" class="combined-info-text">
-            <div class="loading-indicator">日付と天気情報を読み込み中... (Loading date and weather info...)</div>
+            <div class="loading-indicator">日付と天気情報を読み込み中...</div>
         </div>
         <div id="weatherIconContainer" class="weather-icon-container">
             <!-- Weather icon will be placed here by JavaScript -->
@@ -214,7 +256,7 @@
         <!-- JLPT N5 Level Tag -->
         <span class="jlpt-n5-tag">JLPT N5</span>
         <div id="llmContent" class="llm-generated-text">
-            <div class="loading-indicator">コンテンツを生成中... (Generating content...)</div>
+            <div class="loading-indicator">コンテンツを生成中...</div>
         </div>
         <!-- Refresh Button -->
         <button id="refreshButton" class="refresh-button" onclick="generateDailyJapaneseContent()">
@@ -222,16 +264,14 @@
         </button>
     </div>
 
-    <!-- Audio Card - REMOVED FOR NOW -->
-    <!-- <div class="audio-card">
-        <h2>今日の音声 (Today's Audio)</h2>
-        <div id="audioTextDisplay" class="audio-text-display">
-            <div class="loading-indicator">音声を生成中... (Generating audio...)</div>
+    <!-- Japan's Geography Card -->
+    <div class="geography-card">
+        <h2>日本の地理</h2>
+        <div id="map"></div> <!-- Google Map will be rendered here -->
+        <div id="geographyTextDisplay" class="geography-text-display">
+            <div class="loading-indicator">地理情報を生成中...</div>
         </div>
-        <button id="playAudioButton" class="play-button" onclick="generateAndPlayJapaneseAudio()">
-            ▶️ 音声を再生 (Play Audio)
-        </button>
-    </div> -->
+    </div>
 
     <script>
         // Function to get the current date and format it in Japanese
@@ -264,7 +304,7 @@
         async function generateCombinedDateAndWeather() {
             const combinedInfoTextContainer = document.getElementById('combinedInfoTextContainer');
             const weatherIconContainer = document.getElementById('weatherIconContainer');
-            combinedInfoTextContainer.innerHTML = '<div class="loading-indicator">日付と天気情報を読み込み中... (Loading date and weather info...)</div>';
+            combinedInfoTextContainer.innerHTML = '<div class="loading-indicator">日付と天気情報を読み込み中...</div>';
             weatherIconContainer.innerHTML = ''; // Clear previous icon
 
             const openWeatherApiKey = '50104961ae75c350112b68c14da1741a'; // Your OpenWeatherMap API Key
@@ -357,7 +397,7 @@
         // Function to generate daily Japanese content using LLM (frozen)
         async function generateDailyJapaneseContent() {
             const llmContentDiv = document.getElementById('llmContent');
-            llmContentDiv.innerHTML = '<div class="loading-indicator">コンテンツを生成中... (Generating content...)</div>';
+            llmContentDiv.innerHTML = '<div class="loading-indicator">コンテンツを生成中...</div>';
 
             let chatHistory = [];
             // Updated prompt for more variability in content
@@ -394,7 +434,7 @@
                     const text = result.candidates[0].content.parts[0].text;
                     llmContentDiv.textContent = text;
                 } else {
-                    llmContentDiv.innerHTML = '<div class="error-message">コンテンツの生成に失敗しました。(Failed to generate content.)</div>';
+                    llmContentDiv.innerHTML = '<div class="error-message">コンテンツの生成に失敗しました。</div>';
                     console.error('LLM response structure unexpected:', result);
                 }
             } catch (error) {
@@ -403,22 +443,85 @@
             }
         }
 
-        // Function to generate and play Japanese audio using TTS (PARKED FOR NOW)
-        /*
-        async function generateAndPlayJapaneseAudio() {
-            const audioTextDisplay = document.getElementById('audioTextDisplay');
-            const playAudioButton = document.getElementById('playAudioButton');
-            audioTextDisplay.innerHTML = '<div class="loading-indicator">音声を生成中... (Generating audio...)</div>';
-            playAudioButton.disabled = true; // Disable button during generation/playback
+        // Google Maps Initialization and Geography Display
+        let map; // Declare map variable globally or in a scope accessible by initMap
+        let marker; // Declare marker globally
+
+        function initMap() {
+            const mapElement = document.getElementById('map');
+            if (!mapElement) {
+                console.error('Map element not found!');
+                return;
+            }
+
+            // Default center of Japan
+            const defaultCenter = { lat: 36.2048, lng: 138.2529 }; 
+
+            map = new google.maps.Map(mapElement, {
+                center: defaultCenter,
+                zoom: 5.5, // Adjust zoom level as needed
+                mapTypeControl: false, // Hide map type control
+                streetViewControl: false, // Hide street view control
+                fullscreenControl: false, // Hide fullscreen control
+                zoomControl: true, // Show zoom controls
+                gestureHandling: 'cooperative' // For better mobile experience
+            });
+
+            // Call displayJapanGeography after map is initialized
+            displayJapanGeography();
+        }
+
+        async function displayJapanGeography() {
+            const geographyTextDisplay = document.getElementById('geographyTextDisplay');
+            geographyTextDisplay.innerHTML = '<div class="loading-indicator">地理情報を生成中...</div>';
+            
+            // Clear existing marker if any
+            if (marker) {
+                marker.setMap(null);
+            }
+
+            // Predefined list of Japanese geographical locations with latitude and longitude
+            const japaneseGeographyLocations = [
+                { name: "富士山", lat: 35.3606, lng: 138.7292, fact: "日本で一番高い山です。" }, // Mount Fuji
+                { name: "東京", lat: 35.6895, lng: 139.6917, fact: "日本の首都です。" }, // Tokyo
+                { name: "大阪", lat: 34.6937, lng: 135.5023, fact: "西日本の大きな都市です。" }, // Osaka
+                { name: "北海道", lat: 43.2209, lng: 142.8637, fact: "日本の北にある大きな島です。" }, // Hokkaido (center of Hokkaido)
+                { name: "沖縄", lat: 26.2124, lng: 127.6809, fact: "日本の南にある島です。" }, // Okinawa (Naha)
+                { name: "琵琶湖", lat: 35.2000, lng: 136.0833, fact: "日本で一番大きい湖です。" }, // Lake Biwa
+                { name: "瀬戸内海", lat: 34.0000, lng: 133.5000, fact: "本州と四国の間の海です。" }, // Seto Inland Sea (approx center)
+                { name: "九州", lat: 32.8000, lng: 130.8000, fact: "日本の南西にある島です。" }, // Kyushu (Kumamoto area)
+                { name: "東北地方", lat: 39.0000, lng: 140.5000, fact: "日本の北東の地域です。" }, // Tohoku Region (approx center)
+            ];
+
+            // Select a random location
+            const randomIndex = Math.floor(Math.random() * japaneseGeographyLocations.length);
+            const selectedLocation = japaneseGeographyLocations[randomIndex];
+
+            // Add marker to the map
+            const locationCoords = { lat: selectedLocation.lat, lng: selectedLocation.lng };
+            marker = new google.maps.Marker({
+                position: locationCoords,
+                map: map, // Use the globally available map object
+                title: selectedLocation.name // Title on hover
+            });
+
+            // Center the map on the marker
+            map.setCenter(locationCoords);
+            map.setZoom(8); // Zoom in on the specific location
 
             let chatHistory = [];
             const prompt = `
-                JLPT N5レベルの日本語学習者向けの簡単な日本語の文章を一つ生成してください。
-                内容は、ゲーム関連の短いフレーズや、ゲーム実況で使われそうな日常的な表現です。
-                漢字にはふりがなを付けないでください。
-                N5レベルの語彙と文法のみを使用してください。
-                例: 敵が来ました！
-                例: やったー！
+                日本の地理に関する短い文章を、JLPT N5レベルの日本語（です・ます調）で生成してください。
+                以下の情報を使って、自然な文章にしてください。
+                敬語（謙譲語、尊敬語などの高度な形式）は使用しないでください。
+                ふりがなは付けないでください。
+
+                場所: ${selectedLocation.name}
+                事実: ${selectedLocation.fact}
+
+                例: 富士山は日本で一番高い山です。
+                例: 東京は日本の首都です。
+                例: 北海道は日本の北にある大きな島です。
                 文章は短く、シンプルにしてください。
                 `;
 
@@ -433,89 +536,55 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                // Check for HTTP errors first
                 if (!response.ok) {
                     const errorData = await response.json();
-                    if (response.status === 503 && errorData.error && errorData.error.message.includes("overloaded")) {
-                        throw new Error(`モデルが過負荷状態です。しばらくしてからもう一度お試しください。(Model overloaded. Please try again later.)`);
-                    }
                     throw new Error(`HTTPエラー！ステータス: ${response.status} - ${errorData.error ? errorData.error.message : '不明なエラー'}`);
                 }
-
                 const result = await response.json();
 
-                let generatedText = "音声コンテンツを生成できませんでした。";
+                let generatedText = "地理情報を生成できませんでした。";
                 if (result.candidates && result.candidates.length > 0 &&
                     result.candidates[0].content && result.candidates[0].content.parts &&
                     result.candidates[0].content.parts.length > 0) {
                     generatedText = result.candidates[0].content.parts[0].text;
                 } else {
-                    console.error('LLM audio content response structure unexpected:', result);
-                    generatedText = 'LLMからの応答が期待された形式ではありませんでした。(LLM response structure unexpected.)';
+                    console.error('LLM geography content response structure unexpected:', result);
+                    generatedText = 'LLMからの応答が期待された形式ではありませんでした。';
                 }
-
-                audioTextDisplay.textContent = generatedText;
-
-                // Use Web Speech API for Text-to-Speech
-                if ('speechSynthesis' in window) {
-                    console.log('SpeechSynthesis supported.');
-                    const utterance = new SpeechSynthesisUtterance(generatedText);
-                    utterance.lang = 'ja-JP'; // Set language to Japanese
-
-                    // Ensure voices are loaded before trying to select one
-                    const speakUtterance = () => {
-                        const voices = window.speechSynthesis.getVoices();
-                        const japaneseVoice = voices.find(voice => voice.lang === 'ja-JP' || voice.lang === 'ja_JP');
-                        if (japaneseVoice) {
-                            utterance.voice = japaneseVoice;
-                            console.log('Japanese voice selected:', japaneseVoice.name);
-                        } else {
-                            console.warn('Japanese voice not found, using default. Available voices:', voices.map(v => v.lang + ' ' + v.name));
-                        }
-
-                        utterance.onend = () => {
-                            console.log('Speech finished.');
-                            playAudioButton.disabled = false; // Re-enable button after speech ends
-                        };
-                        utterance.onerror = (event) => {
-                            console.error('SpeechSynthesisUtterance error:', event);
-                            audioTextDisplay.textContent = '音声再生に失敗しました。(Failed to play audio.)';
-                            playAudioButton.disabled = false;
-                        };
-
-                        window.speechSynthesis.speak(utterance);
-                        console.log('Attempting to speak:', generatedText);
-                    };
-
-                    // If voices are already loaded, speak immediately. Otherwise, wait for them.
-                    if (window.speechSynthesis.getVoices().length > 0) {
-                        speakUtterance();
-                    } else {
-                        window.speechSynthesis.onvoiceschanged = speakUtterance;
-                        console.log('Waiting for voices to be loaded...');
-                    }
-                    
-                } else {
-                    audioTextDisplay.textContent = 'お使いのブラウザは音声合成に対応していません。(Your browser does not support speech synthesis.)';
-                    playAudioButton.disabled = false;
-                    console.error('SpeechSynthesis not supported in this browser.');
-                }
+                geographyTextDisplay.textContent = generatedText;
 
             } catch (error) {
-                console.error('音声コンテンツの生成に失敗しました:', error);
-                audioTextDisplay.innerHTML = `<div class="error-message">音声コンテンツの生成中にエラーが発生しました。<br>(${error.message})</div>`;
-                playAudioButton.disabled = false;
+                console.error('地理コンテンツの生成に失敗しました:', error);
+                geographyTextDisplay.innerHTML = `<div class="error-message">地理情報の読み込み中にエラーが発生しました。<br>(${error.message})</div>`;
+                // Remove marker on error
+                if (marker) {
+                    marker.setMap(null);
+                }
             }
         }
-        */
+
+
+        // Callback function for Google Maps API (needs to be global)
+        window.initMap = initMap;
+
+        // Load Google Maps API script dynamically
+        function loadGoogleMapsScript() {
+            const script = document.createElement('script');
+            script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyB-p8TAwrL8JVatttUFATPL7eWGKosMCKY&callback=initMap`;
+            script.async = true;
+            script.defer = true;
+            document.head.appendChild(script);
+        }
+
 
         // Call all functions when the page loads
         window.onload = () => {
             updateSalutationDisplay(); // Salutation first
             generateCombinedDateAndWeather(); // Combined date and weather
             generateDailyJapaneseContent(); // LLM generated content (frozen)
-            // generateAndPlayJapaneseAudio(); // Audio card function - COMMENTED OUT
+            loadGoogleMapsScript(); // Load Google Maps API and then initialize map/geography
         };
     </script>
+    <!-- Google Maps API script is loaded dynamically by loadGoogleMapsScript() -->
 </body>
 </html>
