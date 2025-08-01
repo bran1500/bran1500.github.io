@@ -286,6 +286,15 @@
             return date.toLocaleDateString('ja-JP', japaneseDateOptions);
         }
 
+        // Function to get today's date in YYYY-MM-DD format for caching
+        function getTodayDateForCache() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = (now.getMonth() + 1).toString().padStart(2, '0');
+            const day = now.getDate().toString().padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
         // Function to update the salutation display (frozen)
         function updateSalutationDisplay() {
             const salutationElement = document.getElementById('salutationDisplay');
@@ -480,85 +489,121 @@
                 marker.setMap(null);
             }
 
-            // Predefined list of Japanese geographical locations with latitude and longitude
-            const japaneseGeographyLocations = [
-                { name: "富士山", lat: 35.3606, lng: 138.7292, fact: "日本で一番高い山です。" }, // Mount Fuji
-                { name: "東京", lat: 35.6895, lng: 139.6917, fact: "日本の首都です。" }, // Tokyo
-                { name: "大阪", lat: 34.6937, lng: 135.5023, fact: "西日本の大きな都市です。" }, // Osaka
-                { name: "北海道", lat: 43.2209, lng: 142.8637, fact: "日本の北にある大きな島です。" }, // Hokkaido (center of Hokkaido)
-                { name: "沖縄", lat: 26.2124, lng: 127.6809, fact: "日本の南にある島です。" }, // Okinawa (Naha)
-                { name: "琵琶湖", lat: 35.2000, lng: 136.0833, fact: "日本で一番大きい湖です。" }, // Lake Biwa
-                { name: "瀬戸内海", lat: 34.0000, lng: 133.5000, fact: "本州と四国の間の海です。" }, // Seto Inland Sea (approx center)
-                { name: "九州", lat: 32.8000, lng: 130.8000, fact: "日本の南西にある島です。" }, // Kyushu (Kumamoto area)
-                { name: "東北地方", lat: 39.0000, lng: 140.5000, fact: "日本の北東の地域です。" }, // Tohoku Region (approx center)
-            ];
+            const today = getTodayDateForCache();
+            const storedData = localStorage.getItem('dailyGeography');
+            let dailyGeographyData = null;
 
-            // Select a random location
-            const randomIndex = Math.floor(Math.random() * japaneseGeographyLocations.length);
-            const selectedLocation = japaneseGeographyLocations[randomIndex];
+            // Check if there is cached data for today
+            if (storedData) {
+                const parsedData = JSON.parse(storedData);
+                if (parsedData.date === today) {
+                    dailyGeographyData = parsedData;
+                    console.log('Using cached geography data for today.');
+                }
+            }
 
-            // Add marker to the map
-            const locationCoords = { lat: selectedLocation.lat, lng: selectedLocation.lng };
-            marker = new google.maps.Marker({
-                position: locationCoords,
-                map: map, // Use the globally available map object
-                title: selectedLocation.name // Title on hover
-            });
-
-            // Center the map on the marker
-            map.setCenter(locationCoords);
-            map.setZoom(8); // Zoom in on the specific location
-
-            let chatHistory = [];
-            const prompt = `
-                日本の地理に関する短い文章を、JLPT N5レベルの日本語（です・ます調）で生成してください。
-                以下の情報を使って、自然な文章にしてください。
-                敬語（謙譲語、尊敬語などの高度な形式）は使用しないでください。
-                ふりがなは付けないでください。
-
-                場所: ${selectedLocation.name}
-                事実: ${selectedLocation.fact}
-
-                例: 富士山は日本で一番高い山です。
-                例: 東京は日本の首都です。
-                例: 北海道は日本の北にある大きな島です。
-                文章は短く、シンプルにしてください。
-                `;
-
-            chatHistory.push({ role: "user", parts: [{ text: prompt }] });
-            const payload = { contents: chatHistory };
-            const geminiApiKey = 'AIzaSyDDULMyu3K1PB7JzJwIcWgwUbP8XEyGJ7Y'; // Your Gemini API Key
-            const geminiApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`;
-
-            try {
-                const response = await fetch(geminiApiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+            if (dailyGeographyData) {
+                // Use cached data
+                const selectedLocation = dailyGeographyData.location;
+                const generatedText = dailyGeographyData.text;
+                
+                const locationCoords = { lat: selectedLocation.lat, lng: selectedLocation.lng };
+                marker = new google.maps.Marker({
+                    position: locationCoords,
+                    map: map,
+                    title: selectedLocation.name
                 });
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(`HTTPエラー！ステータス: ${response.status} - ${errorData.error ? errorData.error.message : '不明なエラー'}`);
-                }
-                const result = await response.json();
 
-                let generatedText = "地理情報を生成できませんでした。";
-                if (result.candidates && result.candidates.length > 0 &&
-                    result.candidates[0].content && result.candidates[0].content.parts &&
-                    result.candidates[0].content.parts.length > 0) {
-                    generatedText = result.candidates[0].content.parts[0].text;
-                } else {
-                    console.error('LLM geography content response structure unexpected:', result);
-                    generatedText = 'LLMからの応答が期待された形式ではありませんでした。';
-                }
+                map.setCenter(locationCoords);
+                map.setZoom(8);
                 geographyTextDisplay.textContent = generatedText;
 
-            } catch (error) {
-                console.error('地理コンテンツの生成に失敗しました:', error);
-                geographyTextDisplay.innerHTML = `<div class="error-message">地理情報の読み込み中にエラーが発生しました。<br>(${error.message})</div>`;
-                // Remove marker on error
-                if (marker) {
-                    marker.setMap(null);
+            } else {
+                // Generate new data and cache it
+                console.log('Generating new geography data for today.');
+                const japaneseGeographyLocations = [
+                    { name: "富士山", lat: 35.3606, lng: 138.7292, fact: "日本で一番高い山です。" },
+                    { name: "東京", lat: 35.6895, lng: 139.6917, fact: "日本の首都です。" },
+                    { name: "大阪", lat: 34.6937, lng: 135.5023, fact: "西日本の大きな都市です。" },
+                    { name: "北海道", lat: 43.2209, lng: 142.8637, fact: "日本の北にある大きな島です。" },
+                    { name: "沖縄", lat: 26.2124, lng: 127.6809, fact: "日本の南にある島です。" },
+                    { name: "琵琶湖", lat: 35.2000, lng: 136.0833, fact: "日本で一番大きい湖です。" },
+                    { name: "瀬戸内海", lat: 34.0000, lng: 133.5000, fact: "本州と四国の間の海です。" },
+                    { name: "九州", lat: 32.8000, lng: 130.8000, fact: "日本の南西にある島です。" },
+                    { name: "東北地方", lat: 39.0000, lng: 140.5000, fact: "日本の北東の地域です。" },
+                ];
+
+                const randomIndex = Math.floor(Math.random() * japaneseGeographyLocations.length);
+                const selectedLocation = japaneseGeographyLocations[randomIndex];
+
+                let chatHistory = [];
+                const prompt = `
+                    日本の地理に関する短い文章を、JLPT N5レベルの日本語（です・ます調）で生成してください。
+                    以下の情報を使って、自然な文章にしてください。
+                    敬語（謙譲語、尊敬語などの高度な形式）は使用しないでください。
+                    ふりがなは付けないでください。
+
+                    場所: ${selectedLocation.name}
+                    事実: ${selectedLocation.fact}
+
+                    例: 富士山は日本で一番高い山です。
+                    例: 東京は日本の首都です。
+                    例: 北海道は日本の北にある大きな島です。
+                    文章は短く、シンプルにしてください。
+                    `;
+
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                const payload = { contents: chatHistory };
+                const geminiApiKey = 'AIzaSyDDULMyu3K1PB7JzJwIcWgwUbP8XEyGJ7Y'; // Your Gemini API Key
+                const geminiApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`;
+
+                try {
+                    const response = await fetch(geminiApiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(`HTTPエラー！ステータス: ${response.status} - ${errorData.error ? errorData.error.message : '不明なエラー'}`);
+                    }
+                    const result = await response.json();
+
+                    let generatedText = "地理情報を生成できませんでした。";
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates[0].content && result.candidates[0].content.parts &&
+                        result.candidates[0].content.parts.length > 0) {
+                        generatedText = result.candidates[0].content.parts[0].text;
+                    } else {
+                        console.error('LLM geography content response structure unexpected:', result);
+                        generatedText = 'LLMからの応答が期待された形式ではありませんでした。';
+                    }
+
+                    // Save new data to localStorage
+                    const newDailyGeographyData = {
+                        date: today,
+                        location: selectedLocation,
+                        text: generatedText
+                    };
+                    localStorage.setItem('dailyGeography', JSON.stringify(newDailyGeographyData));
+
+                    const locationCoords = { lat: selectedLocation.lat, lng: selectedLocation.lng };
+                    marker = new google.maps.Marker({
+                        position: locationCoords,
+                        map: map,
+                        title: selectedLocation.name
+                    });
+
+                    map.setCenter(locationCoords);
+                    map.setZoom(8);
+                    geographyTextDisplay.textContent = generatedText;
+
+                } catch (error) {
+                    console.error('地理コンテンツの生成に失敗しました:', error);
+                    geographyTextDisplay.innerHTML = `<div class="error-message">地理情報の読み込み中にエラーが発生しました。<br>(${error.message})</div>`;
+                    if (marker) {
+                        marker.setMap(null);
+                    }
                 }
             }
         }
