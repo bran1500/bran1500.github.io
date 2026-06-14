@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KanjiPractice</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Setup Screen -->
+  <div id="screen-setup" class="screen active">
+    <div class="container">
+      <h1>KanjiPractice</h1>
+      <p class="subtitle">Generate reading stories from your WaniKani vocabulary.</p>
+      <form id="setup-form">
+        <label for="wk-token">WaniKani API Token</label>
+        <input type="password" id="wk-token" placeholder="paste your v2 token here" autocomplete="off">
+
+        <label for="claude-key">Claude API Key</label>
+        <input type="password" id="claude-key" placeholder="sk-ant-…" autocomplete="off">
+
+        <button type="submit" id="btn-start">Generate Story</button>
+      </form>
+      <p id="setup-error" class="error hidden"></p>
+    </div>
+  </div>
+
+  <!-- Loading Screen -->
+  <div id="screen-loading" class="screen hidden">
+    <div class="container center">
+      <div class="spinner"></div>
+      <p id="loading-status">Loading your vocabulary…</p>
+    </div>
+  </div>
+
+  <!-- Story Screen -->
+  <div id="screen-story" class="screen hidden">
+    <div class="container">
+      <header class="story-header">
+        <h1>KanjiPractice</h1>
+        <div class="header-actions">
+          <button id="btn-translation" class="secondary">Show Translation</button>
+          <button id="btn-new-story">New Story</button>
+          <button id="btn-settings" class="icon-btn" title="Settings">⚙</button>
+        </div>
+      </header>
+
+      <article id="story-japanese" class="story-text japanese"></article>
+      <article id="story-english" class="story-text english hidden"></article>
+
+      <section id="vocab-section">
+        <h2 class="vocab-heading">Vocabulary used</h2>
+        <ul id="vocab-list" class="vocab-list"></ul>
+      </section>
+
+      <p id="story-error" class="error hidden"></p>
+    </div>
+  </div>
+
+  <!-- Reading popup -->
+  <div id="reading-popup" class="reading-popup">
+    <span class="popup-word"></span>
+    <span class="popup-reading"></span>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
