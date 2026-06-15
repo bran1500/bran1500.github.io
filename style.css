@@ -269,6 +269,15 @@ button:active {
   margin-top: 1.25em;
 }
 
+/* ── Story timestamp ─────────────────────────────────────────────────────── */
+
+.story-timestamp {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+  opacity: 0.7;
+}
+
 /* ── Vocab Section ───────────────────────────────────────────────────────── */
 
 #vocab-section {

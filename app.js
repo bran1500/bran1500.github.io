@@ -8,6 +8,7 @@ const CLAUDE_MODEL = 'claude-sonnet-4-6';
 const CACHE_SUBJECTS_KEY = 'kp_subjects';
 const CACHE_SUBJECTS_TS_KEY = 'kp_subjects_ts';
 const CACHE_STORY_KEY = 'kp_story';
+const CACHE_STORY_TS_KEY = 'kp_story_ts';
 const CACHE_FINGERPRINT_KEY = 'kp_fingerprint';
 const SUBJECTS_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const FINGERPRINT_THRESHOLD = 20; // regenerate if word count changes by this much
@@ -35,6 +36,12 @@ function loadCachedStory() {
 
 function saveCachedStory(story) {
   localStorage.setItem(CACHE_STORY_KEY, JSON.stringify(story));
+  localStorage.setItem(CACHE_STORY_TS_KEY, String(Date.now()));
+}
+
+function loadCachedStoryTimestamp() {
+  const raw = localStorage.getItem(CACHE_STORY_TS_KEY);
+  return raw ? parseInt(raw, 10) : null;
 }
 
 function loadCachedFingerprint() {
@@ -274,6 +281,16 @@ function shouldRegenerate(current, cached) {
 
 // ── UI helpers ─────────────────────────────────────────────────────────────
 
+function renderTimestamp(ts) {
+  const el = document.getElementById('story-timestamp');
+  if (!ts) { el.textContent = ''; return; }
+  const d = new Date(ts);
+  el.textContent = 'Generated ' + d.toLocaleString(undefined, {
+    month: 'short', day: 'numeric', year: 'numeric',
+    hour: 'numeric', minute: '2-digit',
+  });
+}
+
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(el => {
     el.classList.toggle('active', el.id === id);
@@ -474,6 +491,7 @@ async function run(wkToken, claudeKey, forceRegenerate = false) {
 
     // 3. Render
     renderStory(story, vocabList, stretchList);
+    renderTimestamp(loadCachedStoryTimestamp());
     translationVisible = false;
     document.getElementById('story-english').classList.add('hidden');
     document.getElementById('btn-translation').textContent = 'Show Translation';
