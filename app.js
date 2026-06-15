@@ -140,22 +140,25 @@ async function fetchStretchSubjects(token, level, learnedIdSet) {
 // ── Claude API ─────────────────────────────────────────────────────────────
 
 async function generateStory(claudeKey, vocabWords, stretchWords) {
-  const knownSample = sampleWords(vocabWords, 40);
-  const stretchSample = sampleWords(stretchWords, 10);
-
   const fmt = w => `${w.characters}（${w.meanings}）`;
-  const knownList = knownSample.map(fmt).join('、');
-  const stretchList = stretchSample.map(fmt).join('、');
+  const knownList = sampleWords(vocabWords, 150).map(fmt).join('、');
+  const stretchList = sampleWords(stretchWords, 30).map(fmt).join('、');
 
   const prompt = `You are a Japanese language teacher creating reading practice material for a beginner-intermediate learner.
 
-Primary vocabulary — use approximately 80% of your word choices from this list:
+Vocabulary pool (known words) — draw from these as needed:
 ${knownList}
 
-New vocabulary to introduce — use approximately 20% of your word choices from this list (weave them in naturally):
+Vocabulary pool (newer words to introduce) — weave in a few of these where they fit naturally:
 ${stretchList}
 
+You are NOT required to use every word. Choose whichever words best serve the story. Prefer a smaller set of well-chosen words over shoehorning in many unrelated ones.
+
 Write a short story in Japanese (2–3 paragraphs) following these rules:
+- Before writing, decide on a single consistent setting, protagonist, and a simple goal or conflict
+- The story must have a clear beginning, a small development or problem, and a resolution
+- Each paragraph must follow logically from the previous one (cause → effect)
+- Weave vocabulary into the narrative naturally; do not write a sentence solely to include a word
 - Use particles (は、が、を、に、で、と、も、の、へ、から、まで、より) freely as needed for natural Japanese — they do not count toward vocabulary
 - Verb tenses: present indicative, past indicative, present progressive, or past progressive only (plain or polite/keigo form; positive or negative are both fine)
 - Do not use volitional, conditional, causative, passive, or potential verb forms
@@ -176,7 +179,7 @@ The "readings" object must include the hiragana reading for EVERY distinct kanji
     },
     body: JSON.stringify({
       model: CLAUDE_MODEL,
-      max_tokens: 1500,
+      max_tokens: 2000,
       messages: [{ role: 'user', content: prompt }],
     }),
   });
