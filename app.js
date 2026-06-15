@@ -3,7 +3,7 @@
 const WK_BASE = 'https://api.wanikani.com/v2';
 const WK_REVISION = '20170710';
 const CLAUDE_API = 'https://api.anthropic.com/v1/messages';
-const CLAUDE_MODEL = 'claude-haiku-4-5-20251001';
+const CLAUDE_MODEL = 'claude-sonnet-4-6';
 
 const CACHE_SUBJECTS_KEY = 'kp_subjects';
 const CACHE_SUBJECTS_TS_KEY = 'kp_subjects_ts';
