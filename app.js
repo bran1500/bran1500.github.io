@@ -238,8 +238,8 @@ function tokenizeStoryText(text, vocabMap, storyReadings = {}) {
     return e;
   });
 
-  // Fallback: any kanji run + optional trailing hiragana okurigana
-  const kanjiRun = '[一-鿿㐀-䶿々]+[ぁ-ゖ]*';
+  // Fallback: bare kanji run only — no trailing hiragana so particles are never swallowed
+  const kanjiRun = '[一-鿿㐀-䶿々]+';
 
   const pattern = knownEscaped.length
     ? `(${knownEscaped.join('|')})|(${kanjiRun})`
