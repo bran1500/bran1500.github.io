@@ -228,6 +228,27 @@ function buildVocabList(subjects) {
     .filter(w => w.characters && w.meanings);
 }
 
+const VERB_ADJ_ENDINGS = new Set(['く','ぐ','す','つ','ぬ','む','ぶ','う','る','い']);
+
+function buildStemMap(vocabMap) {
+  const stemMap = new Map(); // stem → { baseChars, reading, stretch }
+  // Process longer vocab entries first so longer stems win on conflict
+  const sorted = [...vocabMap.entries()].sort((a, b) => b[0].length - a[0].length);
+  for (const [chars, entry] of sorted) {
+    if (!/[一-鿿㐀-䶿]/.test(chars)) continue; // skip pure-kana entries
+    let stem = null;
+    if (chars.endsWith('する') && chars.length > 2) {
+      stem = chars.slice(0, -2);
+    } else if (VERB_ADJ_ENDINGS.has(chars[chars.length - 1])) {
+      stem = chars.slice(0, -1);
+    }
+    if (stem && stem.length > 0 && !stemMap.has(stem)) {
+      stemMap.set(stem, { baseChars: chars, reading: entry.reading, stretch: entry.stretch });
+    }
+  }
+  return stemMap;
+}
+
 function tokenizeStoryText(text, vocabMap, storyReadings = {}) {
   // Known/stretch keys, longest first
   const knownKeys = [...vocabMap.keys()].sort((a, b) => b.length - a.length);
@@ -238,24 +259,40 @@ function tokenizeStoryText(text, vocabMap, storyReadings = {}) {
     return e;
   });
 
+  // Conjugated forms: stem (from known vocab) + any hiragana tail
+  const stemMap = buildStemMap(vocabMap);
+  const stemsSorted = [...stemMap.keys()].sort((a, b) => b.length - a.length);
+  const stemEscaped = stemsSorted.map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '[ぁ-ゖ]+');
+
   // Fallback: bare kanji run only — no trailing hiragana so particles are never swallowed
   const kanjiRun = '[一-鿿㐀-䶿々]+';
 
-  const pattern = knownEscaped.length
-    ? `(${knownEscaped.join('|')})|(${kanjiRun})`
-    : `(?!)()|(${kanjiRun})`;
+  let pattern;
+  if (knownEscaped.length && stemEscaped.length) {
+    pattern = `(${knownEscaped.join('|')})|(${stemEscaped.join('|')})|(${kanjiRun})`;
+  } else if (knownEscaped.length) {
+    pattern = `(${knownEscaped.join('|')})|()|(${kanjiRun})`;
+  } else {
+    pattern = `(?!)()|()|(${kanjiRun})`;
+  }
   const re = new RegExp(pattern, 'g');
 
   // Sort story.readings keys longest first for prefix lookup on unseen tokens
   const readingKeys = Object.keys(storyReadings).sort((a, b) => b.length - a.length);
 
-  return text.replace(re, (match, knownHit, kanjiHit) => {
+  return text.replace(re, (match, knownHit, stemHit, kanjiHit) => {
     if (knownHit) {
       const entry = vocabMap.get(knownHit);
       const reading = storyReadings[knownHit] || entry?.reading || '';
       const r = reading ? ` data-reading="${reading}"` : '';
       const cls = entry?.stretch ? 'vocab-token stretch' : 'vocab-token';
       return `<span class="${cls}"${r}>${knownHit}</span>`;
+    }
+    if (stemHit) {
+      const stem = stemsSorted.find(s => stemHit.startsWith(s));
+      const baseEntry = stemMap.get(stem);
+      const cls = baseEntry.stretch ? 'vocab-token stretch' : 'vocab-token';
+      return `<span class="${cls}" data-base-word="${baseEntry.baseChars}" data-base-reading="${baseEntry.reading}">${stemHit}</span>`;
     }
     if (kanjiHit) {
       const reading = lookupUnseenReading(kanjiHit, storyReadings, readingKeys);
@@ -387,8 +424,8 @@ function initReadingPopup() {
       return;
     }
     activeToken = token;
-    popup.querySelector('.popup-word').textContent = token.textContent;
-    popup.querySelector('.popup-reading').textContent = token.dataset.reading || '';
+    popup.querySelector('.popup-word').textContent = token.dataset.baseWord || token.textContent;
+    popup.querySelector('.popup-reading').textContent = token.dataset.baseReading || token.dataset.reading || '';
     positionPopup(popup, token);
     popup.classList.add('visible');
     e.stopPropagation();
